@@ -29,13 +29,7 @@ enum class QuestionMode { INTERVAL, DEGREE }
 data class Question(val mode: QuestionMode, val root: Int, val target: Int, val answer: Int) {
     fun playback(): List<List<Int>> = when (mode) {
         QuestionMode.INTERVAL -> listOf(listOf(root), listOf(target))
-        QuestionMode.DEGREE -> listOf(
-            listOf(root, root + 4, root + 7),
-            listOf(root + 5, root + 9, root + 12),
-            listOf(root + 7, root + 11, root + 14),
-            listOf(root, root + 4, root + 7),
-            listOf(target),
-        )
+        QuestionMode.DEGREE -> Solfege.context(root) + listOf(listOf(target))
     }
 }
 

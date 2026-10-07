@@ -143,7 +143,8 @@ def publish_release(client, tag, apk_directory):
              "draft": True, "prerelease": True,
              "body": (
                  "Android 8.0+ early preview.\n\n"
-                 "Features: interval/scale-degree listening drills, sing-back pitch scoring, "
+                 "Features: movable-Do solfege listening and singing (Do/Re/Mi first, then all seven syllables), "
+                 "tonal reference demos, sing-back pitch scoring, an ear-and-listening adaptive icon, "
                  "live single-note melody detection and local training history.\n\n"
                  "Limitations: no song identification or reliable polyphonic/伴奏 transcription. "
                  "Device microphone accuracy still requires real-device evaluation.\n\n"

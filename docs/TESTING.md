@@ -7,9 +7,9 @@
 Windows PowerShell：
 
 ```powershell
-.\gradlew.bat :core:test :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
+.\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.2
+python scripts\github_api.py validate-version --tag v0.0.3
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -17,6 +17,8 @@ python scripts\github_api.py validate-version --tag v0.0.2
 领域测试覆盖：
 
 - 音名、调音基准、音程方向、级数和题目播放一致性。
+- 三音题仅含 Do/Re/Mi、同一根音保持一致、七音覆盖、可动 Do/跨八度映射、上下文与示范实际播放序列。
+- App JVM 测试验证默认进入听唱名三音练习，以及忽略八度的新默认值与显式关闭选项。
 - 合成正弦及带泛音单音：65–1000 Hz 范围，含边界，要求无遗漏且误差 ≤10 cents。
 - 静音、DC 与固定随机种子的白噪声拒绝。
 - 400 ms 实际时间、稀疏帧拒绝、不稳定双峰分布拒绝、容差边界和严格/忽略八度评分。
@@ -39,7 +41,7 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 
 1. 安装、冷启动、字体放大、小屏和手势导航。
 2. 拒绝/永久拒绝权限后听辨正常；授权后回唱与识音正常。
-3. 完成上/下行音程和大调级数一轮，重播不覆盖首次答案。
+3. 听唱名三音/七音示范和答题完整一轮；Do 整轮不变，跨轮换调，重播与听答案不重复计分。
 4. 回唱正确、唱错、无声音、颤音、音域外、忽略八度及设置变更。
 5. 持续唱 `C4 → E4 → G4`，停止后最后一个音出现；有静音的重复同音分成两个事件。
 6. 扬声器播放结束再开启回唱；有线耳机、蓝牙、拔耳机、来电和其他录音 App。
@@ -47,6 +49,8 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 8. 飞行模式训练、保存、重启后查看；确认删除记录后无残留成绩。
 9. 连续监听 30 分钟，观察温升、耗时、曲线更新、内存和麦克风释放。
 10. 固定签名 APK 覆盖升级，设置与历史不丢失。
+11. 查看圆形/方形及 Android 13+ 主题图标，耳朵波纹和三点不被遮罩裁切。
+12. 中断答后示范仍回到反馈；完成轮次后先试听新一轮，试听的 Do 与后续题目一致。
 
 复杂音乐可能被单音算法误判，不能通过只演示清晰哼唱宣称歌曲主旋律识别已完成。
 

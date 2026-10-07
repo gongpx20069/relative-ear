@@ -12,7 +12,8 @@ import io.github.gongpx20069.relativeear.core.NoteSegmenter
 import io.github.gongpx20069.relativeear.core.PitchFrame
 import io.github.gongpx20069.relativeear.core.Question
 import io.github.gongpx20069.relativeear.core.QuestionMode
-import io.github.gongpx20069.relativeear.core.Questions
+import io.github.gongpx20069.relativeear.core.Solfege
+import io.github.gongpx20069.relativeear.core.SolfegeLesson
 import io.github.gongpx20069.relativeear.core.SingingResult
 import io.github.gongpx20069.relativeear.core.SingingScorer
 import kotlinx.coroutines.Dispatchers
@@ -27,14 +28,14 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
 
-enum class Screen { SING, EAR, LISTEN, HISTORY, SETTINGS }
-enum class Phase { IDLE, PLAYING, ANSWERING, LISTENING, SAVING, FEEDBACK, COMPLETE }
+enum class Screen { EAR, SING, LISTEN, HISTORY, SETTINGS }
+enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, SAVING, FEEDBACK, COMPLETE }
 data class UiState(
-    val screen: Screen = Screen.SING,
+    val screen: Screen = Screen.EAR,
     val phase: Phase = Phase.IDLE,
     val settings: Settings = Settings(),
-    val mode: QuestionMode = QuestionMode.INTERVAL,
-    val descending: Boolean = false,
+    val lesson: SolfegeLesson = SolfegeLesson.THREE_NOTES,
+    val doRoot: Int? = null,
     val question: Question? = null,
     val count: Int = 0,
     val correct: Int = 0,
@@ -57,6 +58,7 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
     private var audioJob: Job? = null
     private var answerSince = 0L
     private var session = UUID.randomUUID().toString()
+    private var referenceReturnPhase = Phase.IDLE
 
     init {
         reload()
@@ -92,24 +94,25 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
             audioJob = null
             mutable.update {
                 it.copy(screen = screen, phase = Phase.IDLE, question = null, frame = null, result = null,
-                    curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0)
+                    curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0,
+                    doRoot = null)
             }
         }
     }
-    fun configure(mode: QuestionMode = state.value.mode, descending: Boolean = state.value.descending) {
+    fun configure(lesson: SolfegeLesson) {
         if (state.value.phase != Phase.IDLE && state.value.phase != Phase.COMPLETE) return
-        mutable.update { it.copy(mode = mode, descending = descending, phase = Phase.IDLE, question = null,
-            count = 0, answered = 0, correct = 0) }
+        mutable.update { it.copy(lesson = lesson, phase = Phase.IDLE, question = null, doRoot = null,
+            count = 0, answered = 0, correct = 0, result = null, message = null) }
     }
     fun permissionDenied() { mutable.update { it.copy(message = text(R.string.permission_denied)) } }
     fun interrupt() {
-        if (state.value.phase !in listOf(Phase.PLAYING, Phase.LISTENING, Phase.ANSWERING)) return
+        if (state.value.phase !in listOf(Phase.DEMONSTRATING, Phase.PLAYING, Phase.LISTENING, Phase.ANSWERING)) return
         viewModelScope.launch {
-            val active = state.value.phase in listOf(Phase.PLAYING, Phase.LISTENING, Phase.ANSWERING)
+            val demonstrating = state.value.phase == Phase.DEMONSTRATING
             audioJob?.cancelAndJoin()
             audioJob = null
-            mutable.update { it.copy(phase = Phase.IDLE, frame = null, result = null,
-                message = if (active) text(R.string.interrupted) else it.message) }
+            mutable.update { it.copy(phase = if (demonstrating) referenceReturnPhase else Phase.IDLE,
+                frame = null, message = text(R.string.interrupted)) }
         }
     }
 
@@ -122,11 +125,13 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (previous.phase == Phase.COMPLETE || previous.count == 0) {
             session = UUID.randomUUID().toString()
-            mutable.update { it.copy(count = 0, answered = 0, correct = 0) }
+            val root = if (previous.phase == Phase.COMPLETE) Solfege.chooseRoot()
+            else previous.doRoot ?: Solfege.chooseRoot()
+            mutable.update { it.copy(count = 0, answered = 0, correct = 0, doRoot = root) }
         }
         val current = state.value
-        val mode = if (current.screen == Screen.SING) QuestionMode.INTERVAL else current.mode
-        val question = Questions.create(mode, current.descending)
+        val root = checkNotNull(current.doRoot) { "A solfege round must establish Do" }
+        val question = Solfege.question(root, current.lesson)
         mutable.update { it.copy(question = question, count = it.count + 1, replays = 0,
             result = null, frame = null, curve = emptyList(), message = null) }
         playQuestion()
@@ -138,13 +143,36 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
         playQuestion()
     }
 
+    fun playReference(answer: Boolean = false) {
+        val snapshot = state.value
+        if (audioJob?.isActive == true || snapshot.phase !in listOf(Phase.IDLE, Phase.FEEDBACK, Phase.COMPLETE)) return
+        val question = snapshot.question
+        if (answer && question == null) return
+        val newRound = !answer && snapshot.phase == Phase.COMPLETE
+        val root = if (newRound) Solfege.chooseRoot() else question?.root ?: snapshot.doRoot ?: Solfege.chooseRoot()
+        referenceReturnPhase = if (newRound) Phase.IDLE else snapshot.phase
+        mutable.update {
+            if (newRound) it.copy(doRoot = root, phase = Phase.DEMONSTRATING, count = 0, answered = 0,
+                correct = 0, question = null, result = null, message = null)
+            else it.copy(doRoot = root, phase = Phase.DEMONSTRATING)
+        }
+        launchAudio {
+            val chords = if (answer) checkNotNull(question).playback() else Solfege.reference(root, snapshot.lesson)
+            audio.play(chords, snapshot.settings.a4.toDouble())
+            mutable.update { it.copy(phase = referenceReturnPhase) }
+        }
+    }
+
+    private fun solfegeName(degree: Int): String =
+        getApplication<Application>().resources.getStringArray(R.array.solfege_names)[degree]
+
     private fun launchAudio(action: suspend () -> Unit) {
         audioJob = viewModelScope.launch {
             try {
                 action()
             } catch (error: AudioFailure) {
                 Log.e("RelativeEar", "Audio operation failed", error)
-                mutable.update { it.copy(phase = Phase.IDLE, frame = null,
+                mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null,
                     message = text(R.string.audio_error, error.message ?: "unknown")) }
             } catch (error: SecurityException) {
                 Log.w("RelativeEar", "Microphone access denied", error)
@@ -157,7 +185,7 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
         val question = snapshot.question ?: return
         launchAudio {
             mutable.update { it.copy(phase = Phase.PLAYING, message = null) }
-            val chords = if (snapshot.screen == Screen.SING) listOf(listOf(question.root)) else question.playback()
+            val chords = if (snapshot.screen == Screen.SING) Solfege.context(question.root) else question.playback()
             audio.play(chords, snapshot.settings.a4.toDouble())
             if (snapshot.screen == Screen.EAR) {
                 answerSince = SystemClock.elapsedRealtime()
@@ -177,9 +205,9 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
                 val final = result
                 val message = if (final == null) text(R.string.timeout) else text(R.string.sing_result,
                     text(if (final.correct) R.string.correct else R.string.history_wrong),
-                    Music.name(question.target), final.cents)
+                    "${solfegeName(question.answer)} (${Music.name(question.target)})", final.cents)
                 mutable.update { it.copy(result = final) }
-                finish(Attempt("sing", question.root, question.target, question.answer, final?.correct == true,
+                finish(Attempt("sing_degree", question.root, question.target, question.answer, final?.correct == true,
                     timeout = final == null, cents = final?.cents, reactionMs = SystemClock.elapsedRealtime() - since),
                     message, snapshot.settings)
             }
@@ -193,12 +221,12 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
         mutable.update { it.copy(phase = Phase.SAVING) }
         viewModelScope.launch {
             val correct = answer == question.answer
-            val expected = if (question.mode == QuestionMode.DEGREE) "${question.answer + 1}"
+            val expected = if (question.mode == QuestionMode.DEGREE) solfegeName(question.answer)
             else getApplication<Application>().resources.getStringArray(R.array.interval_names)[question.answer]
             finish(Attempt(if (question.mode == QuestionMode.DEGREE) "degree" else "interval",
                 question.root, question.target, answer, correct,
                 reactionMs = SystemClock.elapsedRealtime() - answerSince, replays = snapshot.replays),
-                if (correct) text(R.string.correct) else text(R.string.wrong_answer, expected), snapshot.settings)
+                if (correct) text(R.string.correct_solfege, expected) else text(R.string.wrong_answer, expected), snapshot.settings)
         }
     }
     private suspend fun finish(attempt: Attempt, message: String, settings: Settings) {

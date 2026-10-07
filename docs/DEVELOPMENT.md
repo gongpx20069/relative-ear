@@ -4,10 +4,11 @@
 
 ## 当前实现
 
-应用版本 `0.0.2`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.3`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
 
-- 唱准：基准音 + 音程提示，上/下行，8 秒采集窗口，首个稳定片段评分，八度模式、容差、A4 设置。
-- 练耳：0–12 半音的音程辨认、大调级数辨认，随机基准，10 题一轮，重播、首次回答计分。
+- 听唱名：默认入口，Do/Re/Mi 三音入门、七音进阶；同轮固定 Do、跨轮随机换调，和弦与 Do 建立调性，唱名示范、听答案、10 题一轮及首次回答计分。
+- 唱唱名：按唱名提示回唱，先播放调性上下文而非孤立基准，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认忽略八度，已有设置保留。
+- 图标：耳朵、听觉波纹与三点，adaptive icon 及 Android 13+ 单色主题图标，不再使用播放器式音符图标。
 - 识音：YIN 单音检测，音名/Hz/cents、音高曲线、音符分段、最近 30 音列表。
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置，最近 100 条报告、确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
@@ -29,7 +30,7 @@ Windows PowerShell 示例：
 ```powershell
 $env:JAVA_HOME = 'C:\path\to\jdk-21'
 $env:ANDROID_HOME = 'C:\path\to\Android\Sdk'
-.\gradlew.bat :core:test :app:assembleDebug :app:lintDebug
+.\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
 ```
 
 也可以用 Android Studio 打开仓库根目录，设置 Gradle JDK 为 21，安装缺失的 SDK 包。
@@ -46,7 +47,7 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 
 | 位置 | 职责 |
 |---|---|
-| `core` / Music、Questions | 音高转换、音名、音程/级数题目与播放音符 |
+| `core` / Music、Questions、Solfege | 音高转换、首调唱名映射、三/七音题目、调性上下文和示范；保留旧音程生成器的兼容测试 |
 | `core` / PitchDetector | 可复用缓冲区的纯 Kotlin YIN，静音门限和置信过滤 |
 | `core` / SingingScorer | 时间窗口、有效覆盖、稳定性、目标偏差和首个有效答案 |
 | `core` / NoteSegmenter | 换音滞回、最短片段、静音分段及结束刷新 |
@@ -59,6 +60,8 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 设计的多层 `:core:*` 模块暂合并为一个 JVM `:core`，Android 集成集中在 `:app`。初版使用系统 SQLite 和 SharedPreferences，而非 Room/DataStore，避免在基础功能验证前引入生成器；后续更换必须迁移既有数据，不删除数据库。
 
 ## 音频实现参数
+
+唱名题始终使用 `QuestionMode.DEGREE`，答案是 0–6 唱名索引而非半音距离。`doRoot` 在整轮中保持一致，示范与后续题目复用该根音。新回唱以 `sing_degree` 写入现有 TEXT 模式字段；旧 `sing`、`interval` 和 `degree` 数据不迁移或删除。示范不请求麦克风、不计分；中断答后示范须返回反馈状态，不能重复计分已完成题目。
 
 - 采样率 16 kHz，分析窗 2048 样本（128 ms），步长通常 512 样本（32 ms）。
 - 初始 RMS 门限 0.008，YIN 阈值 0.15，有效置信度至少 0.85。
@@ -76,6 +79,6 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 - 新功能的领域计算先加入 `core` 测试，再接 UI。
 - 错误必须有 UI 提示；保存失败不能说成绩已成功保存。
 - 不将低置信结果变成零频率，不依赖目标答案“修正”检测结果。
-- 中文文案集中在 `strings.xml`，音程名称使用资源数组。
+- 中文文案集中在 `strings.xml`，唱名名称使用资源数组；旧音程资源仅用于兼容。
 - 不提交 SDK 路径、构建输出、签名材料、token 或个人录音。
 - 应用版本只在 `version.properties` 修改，发布要求见 [RELEASE.md](RELEASE.md)。

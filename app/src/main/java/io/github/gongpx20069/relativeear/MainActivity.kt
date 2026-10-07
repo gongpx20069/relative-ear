@@ -53,11 +53,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.gongpx20069.relativeear.core.Music
-import io.github.gongpx20069.relativeear.core.QuestionMode
+import io.github.gongpx20069.relativeear.core.Solfege
+import io.github.gongpx20069.relativeear.core.SolfegeLesson
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     private val model: EarViewModel by viewModels()
@@ -97,7 +97,7 @@ private fun EarApp(model: EarViewModel) {
             permission.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
-    val labels = listOf(R.string.sing_tab, R.string.ear_tab, R.string.listen_tab, R.string.report_tab, R.string.settings_tab)
+    val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.report_tab, R.string.settings_tab)
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -139,41 +139,43 @@ private fun EarApp(model: EarViewModel) {
 private fun TrainingPage(state: UiState, model: EarViewModel, microphoneAction: () -> Unit) {
     val singing = state.screen == Screen.SING
     Text(stringResource(if (singing) R.string.sing_intro else R.string.ear_intro))
+    Text(stringResource(R.string.movable_do_hint), style = MaterialTheme.typography.bodySmall)
+    val solfegeNames = stringArrayResource(R.array.solfege_names)
     val configEnabled = state.phase == Phase.IDLE || state.phase == Phase.COMPLETE
-    if (!singing) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = state.mode == QuestionMode.INTERVAL,
-                onClick = { model.configure(QuestionMode.INTERVAL) }, enabled = configEnabled,
-                label = { Text(stringResource(R.string.interval_mode)) })
-            FilterChip(selected = state.mode == QuestionMode.DEGREE,
-                onClick = { model.configure(QuestionMode.DEGREE) }, enabled = configEnabled,
-                label = { Text(stringResource(R.string.degree_mode)) })
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(selected = state.lesson == SolfegeLesson.THREE_NOTES,
+            onClick = { model.configure(SolfegeLesson.THREE_NOTES) }, enabled = configEnabled,
+            label = { Text(stringResource(R.string.three_notes)) })
+        FilterChip(selected = state.lesson == SolfegeLesson.SEVEN_NOTES,
+            onClick = { model.configure(SolfegeLesson.SEVEN_NOTES) }, enabled = configEnabled,
+            label = { Text(stringResource(R.string.seven_notes)) })
+    }
+    Text(stringResource(R.string.reference_order,
+        state.lesson.degrees.joinToString(" / ") { solfegeNames[it] }),
+        style = MaterialTheme.typography.bodySmall)
+    if (configEnabled) {
+        OutlinedButton(onClick = { model.playReference() }, enabled = state.loaded) {
+            Text(stringResource(R.string.play_reference))
         }
     }
-    if (singing || state.mode == QuestionMode.INTERVAL) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !state.descending, onClick = { model.configure(descending = false) },
-                enabled = configEnabled, label = { Text(stringResource(R.string.up_option)) })
-            FilterChip(selected = state.descending, onClick = { model.configure(descending = true) },
-                enabled = configEnabled, label = { Text(stringResource(R.string.down_option)) })
-        }
+    state.doRoot?.let { root ->
+        Text(stringResource(R.string.do_reference, Music.name(root)))
     }
-    val intervalNames = stringArrayResource(R.array.interval_names)
     val question = state.question
     if (question != null) {
         Text(stringResource(R.string.question_count, state.count))
         if (singing) {
-            val direction = stringResource(if (question.target < question.root) R.string.direction_down else R.string.direction_up)
-            Text(stringResource(R.string.target_readout, Music.name(question.root),
-                "$direction${intervalNames[abs(question.target - question.root)]}"),
+            Text(stringResource(R.string.sing_target, solfegeNames[question.answer]),
                 style = MaterialTheme.typography.titleLarge)
         }
     }
     Text(stringResource(when (state.phase) {
         Phase.PLAYING -> R.string.playing
+        Phase.DEMONSTRATING -> R.string.demonstrating
         Phase.LISTENING -> R.string.sing_now
         Phase.ANSWERING -> R.string.answer_now
         Phase.SAVING -> R.string.saving
+        Phase.COMPLETE -> R.string.round_complete
         else -> R.string.ready
     }))
     if (singing && state.phase == Phase.LISTENING) PitchReadout(state)
@@ -186,12 +188,12 @@ private fun TrainingPage(state: UiState, model: EarViewModel, microphoneAction: 
             Text(stringResource(R.string.next_question))
         }
         Phase.ANSWERING -> {
-            val answers = if (state.mode == QuestionMode.DEGREE) (0..6).toList() else (0..12).toList()
+            val answers = state.lesson.degrees
             answers.chunked(3).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                     row.forEach { answer ->
                         OutlinedButton(onClick = { model.answer(answer) }, modifier = Modifier.weight(1f)) {
-                            Text(if (state.mode == QuestionMode.DEGREE) "${answer + 1}" else intervalNames[answer])
+                            Text(solfegeNames[answer])
                         }
                     }
                 }
@@ -200,6 +202,11 @@ private fun TrainingPage(state: UiState, model: EarViewModel, microphoneAction: 
         }
         Phase.SAVING -> Unit
         else -> OutlinedButton(onClick = model::interrupt) { Text(stringResource(R.string.stop)) }
+    }
+    if (question != null && state.phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)) {
+        OutlinedButton(onClick = { model.playReference(answer = true) }) {
+            Text(stringResource(R.string.play_answer))
+        }
     }
     if (state.answered > 0) Text(stringResource(R.string.round_result, state.correct, state.answered))
 }
@@ -212,9 +219,20 @@ private fun PitchReadout(state: UiState) {
         Text(stringResource(R.string.no_pitch), style = MaterialTheme.typography.titleMedium)
     } else {
         val midi = Music.nearest(frequency, state.settings.a4.toDouble())
-        val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()), midi, false)
-        Text(stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents),
-            style = MaterialTheme.typography.titleLarge)
+        val question = state.question
+        if (state.screen == Screen.SING && question != null) {
+            val names = stringArrayResource(R.array.solfege_names)
+            val degree = Solfege.degree(midi, question.root)
+            val name = degree?.let { names[it] } ?: stringResource(R.string.chromatic_pitch)
+            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()),
+                question.target, state.settings.ignoreOctave)
+            Text(stringResource(R.string.sing_live_readout, name, cents),
+                style = MaterialTheme.typography.titleLarge)
+        } else {
+            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()), midi, false)
+            Text(stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents),
+                style = MaterialTheme.typography.titleLarge)
+        }
     }
     val description = stringResource(R.string.chart_description)
     val color = MaterialTheme.colorScheme.primary
@@ -262,9 +280,10 @@ private fun HistoryPage(state: UiState) {
     val format = remember { DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
     history.attempts.forEach { attempt ->
         val mode = stringResource(when (attempt.mode) {
-            "sing" -> R.string.sing_tab
+            "sing_degree" -> R.string.sing_tab
+            "sing" -> R.string.legacy_singing
             "degree" -> R.string.degree_mode
-            else -> R.string.interval_mode
+            else -> R.string.legacy_interval
         })
         val result = stringResource(when {
             attempt.timeout -> R.string.history_timeout

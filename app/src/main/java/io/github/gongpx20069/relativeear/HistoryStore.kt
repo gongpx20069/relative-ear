@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import java.io.IOException
 
-data class Settings(val a4: Int = 440, val tolerance: Int = 35, val ignoreOctave: Boolean = false)
+data class Settings(val a4: Int = 440, val tolerance: Int = 35, val ignoreOctave: Boolean = true)
 data class Attempt(
     val mode: String,
     val root: Int,
@@ -40,7 +40,7 @@ class HistoryStore(context: Context) : SQLiteOpenHelper(context, "training.db", 
     }
     fun settings(): Settings = Settings(
         preferences.getInt("a4", 440), preferences.getInt("tolerance", 35),
-        preferences.getBoolean("ignoreOctave", false),
+        preferences.getBoolean("ignoreOctave", true),
     )
     fun saveSettings(settings: Settings) {
         require(settings.a4 in 415..466 && settings.tolerance in listOf(20, 35, 50))

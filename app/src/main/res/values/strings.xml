@@ -1,13 +1,28 @@
 <resources>
     <string name="app_name">Relative Ear</string>
-    <string name="tagline">听懂音程，唱准旋律</string>
-    <string name="sing_tab">唱准</string>
-    <string name="ear_tab">练耳</string>
+    <string name="tagline">听出 Do / Re / Mi，唱准旋律</string>
+    <string name="sing_tab">唱唱名</string>
+    <string name="ear_tab">听唱名</string>
     <string name="listen_tab">识音</string>
     <string name="report_tab">记录</string>
     <string name="settings_tab">设置</string>
-    <string name="sing_intro">听基准音，按要求唱出目标音。请用耳机或等播放结束后再唱。</string>
-    <string name="ear_intro">先听题目，再选择答案；每轮 10 题。可以重播，统计只计首次答案。</string>
+    <string name="sing_intro">先听和弦与 Do，记住当前调的感觉，再唱出指定唱名。等播放结束后再唱。</string>
+    <string name="ear_intro">先记住 Do，再判断最后一个音是 Do、Re 还是 Mi。从三个音开始，熟悉后再练全部七个唱名。</string>
+    <string name="movable_do_hint">首调唱名：Do 随调性变化，不固定等于 C。同一轮保持 Do 不变，新一轮随机选调。</string>
+    <string name="three_notes">Do / Re / Mi</string>
+    <string name="seven_notes">全部七音</string>
+    <string name="play_reference">先听唱名示范</string>
+    <string name="reference_order">示范顺序：先建立 Do，再依次听 %1$s，最后回到 Do。</string>
+    <string name="play_answer">听正确答案</string>
+    <string name="do_reference">本轮 Do = %1$s</string>
+    <string name="sing_target">请唱 %1$s</string>
+    <string name="demonstrating">正在示范：先建立 Do，再播放唱名</string>
+    <string name="round_complete">本轮完成，可以开始新一轮</string>
+    <string name="correct_solfege">正确，最后一个音是 %1$s</string>
+    <string name="sing_live_readout">你唱的是 %1$s · 距目标 %2$+.0f 音分</string>
+    <string name="chromatic_pitch">当前大调以外的音</string>
+    <string name="legacy_interval">旧版音程练习</string>
+    <string name="legacy_singing">旧版回唱</string>
     <string name="listen_intro">实时识别人声或乐器单音旋律。不识别歌名，不保证识别带伴奏歌曲或和弦。</string>
     <string name="start_round">开始一轮</string>
     <string name="start_singing">播放并开始回唱</string>
@@ -21,7 +36,7 @@
     <string name="direction_up">向上</string>
     <string name="direction_down">向下</string>
     <string name="interval_mode">音程</string>
-    <string name="degree_mode">大调级数</string>
+    <string name="degree_mode">听唱名</string>
     <string name="up_option">上行</string>
     <string name="down_option">下行</string>
     <string name="question_count">第 %1$d / 10 题</string>
@@ -36,8 +51,8 @@
     <string name="wrong_answer">未答对，正确答案：%1$s</string>
     <string name="sing_result">%1$s · 目标 %2$s · 偏差 %3$+.0f cents</string>
     <string name="timeout">超时：没有形成稳定单音。检查环境、距离或尝试唱稳一些。</string>
-    <string name="interrupted">训练已中断，本题不计成绩。点击开始重试。</string>
-    <string name="permission_denied">需要麦克风权限才能唱准或识音。练耳仍可使用；如已永久拒绝，请在系统应用设置中授权。</string>
+    <string name="interrupted">音频已停止。未完成的题目不计成绩，可以继续练习。</string>
+    <string name="permission_denied">需要麦克风权限才能唱唱名或识音。听唱名仍可使用；如已永久拒绝，请在系统应用设置中授权。</string>
     <string name="audio_error">音频不可用：%1$s。请停止其他录音应用并重试。</string>
     <string name="storage_error">本地数据操作失败：%1$s。成绩未确认保存，请重试。</string>
     <string name="settings_title">训练设置</string>
@@ -66,5 +81,9 @@
         <item>小三度</item><item>大三度</item><item>纯四度</item>
         <item>三全音</item><item>纯五度</item><item>小六度</item>
         <item>大六度</item><item>小七度</item><item>大七度</item><item>纯八度</item>
+    </string-array>
+    <string-array name="solfege_names">
+        <item>Do（哆）</item><item>Re（来）</item><item>Mi（咪）</item>
+        <item>Fa（发）</item><item>Sol（嗦）</item><item>La（拉）</item><item>Si（西）</item>
     </string-array>
 </resources>

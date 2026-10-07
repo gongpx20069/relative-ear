@@ -59,7 +59,7 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           python -m unittest discover -s scripts -p "test_*.py"
-          bash gradlew :core:test :app:lintRelease :app:assembleRelease --no-daemon
+          bash gradlew :core:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --no-daemon
       - name: Verify complete ABI set, metadata and shared signature
         run: python scripts/verify_apk.py --apk-dir app/build/outputs/apk/release --tools "$ANDROID_HOME/build-tools/35.0.0"
       - name: Publish using GitHub REST API

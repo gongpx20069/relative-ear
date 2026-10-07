@@ -12,6 +12,16 @@
 - 首发平台：Android。
 - 首版语言：简体中文，预留英文资源。
 - 首版原则：离线优先，无账号，无云端音频处理。
+- 三大功能：唱准、练耳、识别周围音乐；识音从连续单音旋律起步，带伴奏主旋律提取单独验证。
+- 兼容目标：Android 8.0（API 26）及以上。
+- 发布版本：`0.0.x`，从 `0.0.1` 起；通过 GitHub Actions 构建并上传 APK 到 GitHub Releases。
+- 目标仓库：公开的 `gongpx20069/relative-ear`，通过 GitHub REST API 创建；当前因缺少认证尚未创建。
+
+## 发布规划
+
+Android 工程初始化时同步实现发布工作流：推送 `v0.0.x` 标签，校验版本，运行测试与 lint，构建固定签名的 APK，通过 GitHub REST API 创建 Release 并上传 APK 与 SHA-256 校验文件。
+
+当前没有可构建的 Android 工程，因此尚未添加发布工作流，也没有 APK 或 Release。签名密钥由仓库管理员配置到 GitHub Actions Secrets，不进入公开仓库。
 
 ## 名称与来源
 

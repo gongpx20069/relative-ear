@@ -47,11 +47,25 @@ def token():
         return value
     try:
         result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        result = None
+    if result is not None and result.returncode == 0 and result.stdout.strip():
+        return result.stdout.strip()
+    environment = os.environ.copy()
+    environment.update(GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="Never")
+    try:
+        credential = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\nusername=gongpx20069\n\n",
+            capture_output=True, text=True, check=False, env=environment,
+        )
     except FileNotFoundError as error:
-        raise ValueError("Set GH_TOKEN locally or install GitHub CLI and authenticate with gh auth login") from error
-    if result.returncode or not result.stdout.strip():
-        raise ValueError("Authenticate locally with gh auth login or set GH_TOKEN; never commit a token")
-    return result.stdout.strip()
+        raise ValueError("Set GH_TOKEN or authenticate with GitHub CLI/Git Credential Manager") from error
+    if credential.returncode == 0:
+        fields = dict(line.split("=", 1) for line in credential.stdout.splitlines() if "=" in line)
+        if fields.get("password"):
+            return fields["password"]
+    raise ValueError("No GitHub credential for gongpx20069; authenticate or set GH_TOKEN without committing it")
 
 
 class GitHub:

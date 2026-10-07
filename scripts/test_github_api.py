@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import json
 import hashlib
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -190,6 +191,29 @@ class GitHubApiTest(unittest.TestCase):
     def test_no_token_is_logged(self):
         with patch.dict("os.environ", {"GH_TOKEN": "private-value"}):
             self.assertEqual("private-value", github_api.token())
+
+    def test_account_specific_git_credential_fallback(self):
+        responses = [
+            subprocess.CompletedProcess([], 1, stdout="", stderr="not authenticated"),
+            subprocess.CompletedProcess([], 0, stdout="username=gongpx20069\npassword=saved-test-token\n"),
+        ]
+        with patch.dict("os.environ", {}, clear=True), patch("github_api.subprocess.run", side_effect=responses) as run:
+            self.assertEqual("saved-test-token", github_api.token())
+            lookup = run.call_args
+            self.assertIn("username=gongpx20069", lookup.kwargs["input"])
+            self.assertEqual("0", lookup.kwargs["env"]["GIT_TERMINAL_PROMPT"])
+            self.assertEqual("Never", lookup.kwargs["env"]["GCM_INTERACTIVE"])
+
+    def test_git_credential_fallback_without_github_cli(self):
+        responses = [FileNotFoundError(), subprocess.CompletedProcess([], 0, stdout="password=saved-test-token\n")]
+        with patch.dict("os.environ", {}, clear=True), patch("github_api.subprocess.run", side_effect=responses):
+            self.assertEqual("saved-test-token", github_api.token())
+
+    def test_missing_credential_fails_explicitly(self):
+        failure = subprocess.CompletedProcess([], 1, stdout="", stderr="unavailable")
+        with patch.dict("os.environ", {}, clear=True), patch("github_api.subprocess.run", return_value=failure):
+            with self.assertRaises(ValueError):
+                github_api.token()
 
 
 if __name__ == "__main__":

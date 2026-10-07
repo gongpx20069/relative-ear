@@ -6,19 +6,20 @@
 
 目标：`gongpx20069/relative-ear`。使用 Python 标准库调用 GitHub REST API，不用 `gh repo create`。
 
-认证可采用本机 `gh auth login` 后由脚本读取 `gh auth token`，或在本机安全设置 `GH_TOKEN`。不要在聊天、提交或日志中粘贴 token。
+认证优先读取本机 `GH_TOKEN`/`GITHUB_TOKEN`，其次读取 `gh auth token`，最后通过 `git credential fill` 查询 Git Credential Manager 已保存的 `gongpx20069` GitHub 凭据。查询必须带 `username=gongpx20069`：默认无用户名查询可能找不到多账号凭据。不要在聊天、提交或日志中粘贴 token。
 
 Token 必须具有创建公开仓库与推送代码所需权限；包含工作流的推送也需要相应权限。fine-grained PAT 还需核实是否支持所需的用户仓库创建操作，不能只授予现有仓库的只读权限。
 
 ```powershell
 python scripts\github_api.py create-repo
 git remote add origin https://github.com/gongpx20069/relative-ear.git
+git config credential.https://github.com.username gongpx20069
 git push -u origin main
 ```
 
 创建操作检查登录用户必须是 `gongpx20069`，已有公开仓库则不重复创建。发现同名私有仓库会停止，不擅自公开已有内容。REST 身份认证与 Git 推送认证分别生效；使用环境 token 调 REST 不会自动配置 Git 凭据。
 
-当前没有可用 GitHub 认证，远端尚未创建或推送；本地实现不等于远端发布。
+公开仓库已通过 REST API 创建。凭据只在进程内使用，不写入源码或远端 URL；本地 Git 配置仅保存用于选择凭据的用户名。
 
 ## 2. 固定签名密钥
 
@@ -102,4 +103,4 @@ python scripts\github_api.py release --tag v0.0.1 --apk-dir app\build\outputs\ap
 
 本地未配置签名时 `assembleRelease` 可以生成 unsigned APK，不能安装或发布为正式包。对正式 release 构建设置 `RELEASE_KEYSTORE`、`RELEASE_STORE_PASSWORD`、`RELEASE_KEY_ALIAS`、`RELEASE_KEY_PASSWORD`，与 Actions 使用相同配置。
 
-目前工作流和 REST 发布逻辑已实现，远端运行和真实 Release 上传尚未验证。首次上线仍需 GitHub 认证、仓库创建、固定签名配置和首轮 Actions 执行。
+工作流和 REST 发布逻辑已实现；首次上线还需要固定签名 Secrets 和首轮 Actions 执行。实际发布状态以 Releases 页面为准。

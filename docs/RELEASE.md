@@ -113,3 +113,5 @@ python scripts\github_api.py release --tag v0.0.2 --apk-dir app\build\outputs\ap
 本地未配置签名时 `assembleRelease` 可以生成 unsigned APK，不能安装或发布为正式包。对正式 release 构建设置 `RELEASE_KEYSTORE`、`RELEASE_STORE_PASSWORD`、`RELEASE_KEY_ALIAS`、`RELEASE_KEY_PASSWORD`，与 Actions 使用相同配置。
 
 公开仓库及固定签名 Secrets 已配置；后续推送有效 `v0.0.x` 标签会触发 Actions 发布。实际运行结果与完整 APK 资产以 Actions 和 Releases 页面为准。
+
+首次成功发布为 [v0.0.2](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.2)，由 GitHub Actions 构建并通过 REST API 发布五个 APK 和 `SHA256SUMS.txt`。公开下载的文件已完成校验与固定签名核对；`v0.0.1` 保留为失败标签，没有移动或覆盖。

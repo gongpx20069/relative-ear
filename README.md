@@ -20,6 +20,8 @@ Android **8.0 及以上**，中文界面，无账号，离线使用。声音只�
 
 每个 APK 都是完整安装包，只需下载其中一个，不需要把多个架构包一起安装。以手机系统支持的架构为准，不能只看 CPU 是否为 64 位。Release 的 `SHA256SUMS.txt` 提供五个 APK 的文件校验值。
 
+当前 `0.0.2`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.2/relative-ear-0.0.2-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.2/relative-ear-0.0.2-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.2)。
+
 1. 将 APK 下载到手机，点击安装。
 2. 如果系统提示不允许安装，给你正在使用的浏览器或文件管理器开启“允许安装未知应用”。
 3. 打开 Relative Ear；只有使用 **唱准** 或 **识音** 时才需要麦克风权限。

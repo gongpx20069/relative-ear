@@ -6,7 +6,7 @@
 |---|---|---|
 | [docs/DESIGN.md](docs/DESIGN.md) | 产品目标、功能边界、评分规则、目标架构与验收指标；包含未来规划，不能据此声称所有功能已实现 | 当前实现见 DEVELOPMENT；验证方法见 TESTING；发布细节见 RELEASE |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 已实现功能、实际模块、依赖环境、本地构建及当前与设计的差异 | 产品依据见 DESIGN；测试命令见 TESTING；正式签名见 RELEASE |
-| [docs/RELEASE.md](docs/RELEASE.md) | 公开仓库 REST 创建、签名 Secrets、0.0.x 版本、CI 与 Release 发布/重试 | 工程构建见 DEVELOPMENT；发布前验证见 TESTING |
+| [docs/RELEASE.md](docs/RELEASE.md) | 公开仓库 REST 创建、签名 Secrets、0.0.x 版本、五种架构 APK、CI 与 Release 发布/重试 | 用户选包见 README；工程构建见 DEVELOPMENT；发布前验证见 TESTING |
 | [docs/TESTING.md](docs/TESTING.md) | 自动测试范围、真机检查清单、尚未验证的指标与维护方法 | 目标阈值见 DESIGN；APK 发布门禁见 RELEASE |
 | [docs/PRIVACY.md](docs/PRIVACY.md) | 麦克风用途、本地数据、生命周期、备份与删除边界 | 用户权限操作见 README；数据实现见 DEVELOPMENT |
 

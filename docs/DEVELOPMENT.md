@@ -11,7 +11,7 @@
 - 识音：YIN 单音检测，音名/Hz/cents、音高曲线、音符分段、最近 30 音列表。
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置，最近 100 条报告、确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
-- GitHub Actions：测试、lint、构建；标签触发固定签名 APK、REST Release 上传。
+- GitHub Actions：测试、lint、构建；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
 
 尚未实现：弱项推荐、考试模式、自定义音程集合/音域、完整旋律模唱评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
 
@@ -34,10 +34,10 @@ $env:ANDROID_HOME = 'C:\path\to\Android\Sdk'
 
 也可以用 Android Studio 打开仓库根目录，设置 Gradle JDK 为 21，安装缺失的 SDK 包。
 
-Debug APK：`app\build\outputs\apk\debug\app-debug.apk`。
+Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包含 `arm64-v8a`、`armeabi-v7a`、`x86_64` 和 `x86` 独立 APK。Debug 和 release 都启用 ABI splits；每个包可独立安装，所有架构共享相同 versionCode。
 
 ```powershell
-& "$env:ANDROID_HOME\platform-tools\adb.exe" install -r app\build\outputs\apk\debug\app-debug.apk
+& "$env:ANDROID_HOME\platform-tools\adb.exe" install -r app\build\outputs\apk\debug\app-universal-debug.apk
 ```
 
 没有连接手机时可以构建，但无法验证真实麦克风与设备音频路由。
@@ -54,7 +54,7 @@ Debug APK：`app\build\outputs\apk\debug\app-debug.apk`。
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
 | `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
 | `app` / MainActivity | Compose 页面、导航、权限请求、后台中断 |
-| `scripts` | GitHub REST 仓库/Release、APK 验证及标准库测试 |
+| `scripts` | GitHub REST 仓库/Release、AGP 输出元数据读取、ABI/签名验证及标准库测试 |
 
 设计的多层 `:core:*` 模块暂合并为一个 JVM `:core`，Android 集成集中在 `:app`。初版使用系统 SQLite 和 SharedPreferences，而非 Room/DataStore，避免在基础功能验证前引入生成器；后续更换必须迁移既有数据，不删除数据库。
 

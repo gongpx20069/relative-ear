@@ -63,18 +63,39 @@ git push origin v0.0.1
 
 ## 4. CI 与发布行为
 
-- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域测试、lint、debug APK 与仪器测试 APK 编译。上传 debug 构建产物，不创建 Release。
-- `release.yml`：版本标签触发，校验版本与 main 祖先关系，读取 Secrets，执行测试/lint，构建固定签名 release APK。
-- 使用 `apksigner` 校验签名、`aapt` 校验应用 ID/版本/minSdk，并拒绝 debuggable APK。
-- REST API 创建 draft Release，上传 APK 和 SHA-256 文件，确认两项成功后公开为 prerelease。
+- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域测试、lint、debug APK 与仪器测试 APK 编译。上传五个 debug 架构包，不创建 Release。
+- `release.yml`：版本标签触发，校验版本与 main 祖先关系，读取 Secrets，执行测试/lint，构建同一签名的四种 ABI release APK 和通用 APK。
+- 读取 AGP 的 `output-metadata.json`，要求五个架构完整、版本一致、属于 release，拒绝遗漏、重复、空文件和残留 APK。
+- 使用 `apksigner` 校验签名、`aapt` 校验应用 ID/版本/minSdk，并拒绝 debuggable APK；同时检查包内原生库 ABI 和五个 APK 的签名证书一致性。
+- REST API 创建 draft Release，上传五个 APK 和合并 SHA-256 文件，确认六项资产名称/大小/状态均正确后公开为 prerelease。
 - 同标签并发发布串行化；任何失败都会退出非零，签名临时文件在任务结束时删除。
 
-资产名称：`relative-ear-0.0.x.apk`、`relative-ear-0.0.x.apk.sha256`。
+同一个 `v0.0.x` Release 包含：
+
+| 资产 | 内容 |
+|---|---|
+| `relative-ear-0.0.x-arm64-v8a.apk` | 64 位 ARM |
+| `relative-ear-0.0.x-armeabi-v7a.apk` | 32 位 ARM |
+| `relative-ear-0.0.x-x86_64.apk` | 64 位 x86 |
+| `relative-ear-0.0.x-x86.apk` | 32 位 x86 |
+| `relative-ear-0.0.x-universal.apk` | 包含上述全部原生库 |
+| `SHA256SUMS.txt` | 五个 APK 的 SHA-256 值和对应资产名 |
+
+所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.1` / `1`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
+
+本地正式构建后，先验证全部 APK，再通过 REST 发布已存在的标签：
+
+```powershell
+python scripts\verify_apk.py --apk-dir app\build\outputs\apk\release --tools "$env:ANDROID_HOME\build-tools\35.0.0"
+python scripts\github_api.py release --tag v0.0.1 --apk-dir app\build\outputs\apk\release
+```
+
+正常发布仍优先使用 GitHub Actions。切换到 ABI splits 后，本地第一次构建应先执行 `.\gradlew.bat :app:clean :app:assembleRelease`，防止旧版单包输出残留；新 Actions runner 不依赖旧输出。
 
 ## 5. 失败处理
 
 - 缺少 Secrets：补齐固定签名材料后重跑原标签的任务。
-- 上传失败：保留 draft，重试只替换该 draft 的预期 APK/校验文件。
+- 上传失败：保留 draft，重试只替换该 draft 的预期五个 APK/校验文件；任何一个架构失败都不发布部分 Release。
 - draft 包含未知资产或指向另一提交：停止并人工检查。
 - 版本已经公开：拒绝覆盖，增加版本并发布新标签。
 - 标签版本写错或尚未合并 main：修正工程与发布提交，使用新的有效版本；不要自动移动已发布标签。

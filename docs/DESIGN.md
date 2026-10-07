@@ -290,7 +290,7 @@ Idle → Preparing → Playing → Settling → Listening
 - 推送 `v0.0.*` 标签：严格校验标签格式及版本，检查该提交已进入 main，运行测试与 lint，构建签名 release APK。
 - 普通 CI 仅授予 `contents: read`；发布任务授予 `contents: write`，使用仓库作用域的 `GITHUB_TOKEN`，不使用个人长期 token。
 - 通过 REST API `POST /repos/{owner}/{repo}/releases` 创建 draft Release。
-- 通过返回的上传地址上传 `relative-ear-0.0.x.apk` 及对应 SHA-256 文件；所有上传成功后，再使用 REST API 将 draft 发布。
+- 通过返回的上传地址上传 `relative-ear-0.0.x-<architecture>.apk` 的四种 ABI 包、通用包与合并 `SHA256SUMS.txt`；六项资产全部上传并确认后，再使用 REST API 将 draft 发布。
 - 构建、校验或上传失败不得发布完整 Release；失败必须使工作流退出非零。
 - 重试仅允许处理当前标签的 draft；已公开发布的版本不覆盖，使用新版本。
 - 同一标签的发布任务使用 concurrency 防止重复并行发布，执行中不自动取消。
@@ -301,8 +301,8 @@ Idle → Preparing → Playing → Settling → Listening
 - 所有 release 版本使用固定应用 ID 和同一签名密钥，确保用户可以覆盖升级并保留数据。
 - 签名材料和密码只放 GitHub Actions Secrets，临时文件在任务结束时清理；密钥需由管理员离线备份。
 - Secrets 缺失时发布失败，不能生成新临时密钥或把 debug APK 当作正式升级包。
-- APK 发布前执行签名验证，版本信息与 SHA-256 校验；不只检查文件存在。
-- minSdk 26 的通用 APK 为默认产物；若引入原生库，至少包含 arm64-v8a 和 armeabi-v7a，模拟器测试另考虑 x86_64。
+- APK 发布前执行签名、版本、原生库 ABI 与完整产物集合验证，并确认五个 APK 使用同一证书；不只检查文件存在。
+- minSdk 26，独立构建 arm64-v8a、armeabi-v7a、x86_64、x86 和 universal APK；共享版本号，每个包可独立安装。
 - 公开仓库不包含签名密钥、token、个人录音或未授权测试音乐。
 
 ## 11. 依据与开放决策

@@ -8,7 +8,17 @@ Android **8.0 及以上**，中文界面，无账号，离线使用。声音只�
 
 ## 安装
 
-发布后，从 [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases) 下载 `relative-ear-0.0.x.apk`，不要下载源码压缩包。
+发布后，从 [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases) 下载适合手机架构的 APK，不要下载源码压缩包。所有安装包都使用 `0.0.x` 版本号。
+
+| 安装包 | 适用设备 |
+|---|---|
+| `relative-ear-0.0.x-arm64-v8a.apk` | 大多数现代 Android 手机，64 位 ARM 系统 |
+| `relative-ear-0.0.x-armeabi-v7a.apk` | 较老的手机或 32 位 ARM 系统 |
+| `relative-ear-0.0.x-x86_64.apk` | 64 位 Intel 设备或对应 Android 模拟器 |
+| `relative-ear-0.0.x-x86.apk` | 32 位 Intel 设备或对应 Android 模拟器 |
+| `relative-ear-0.0.x-universal.apk` | 不确定架构时选这个；包含全部架构，体积稍大 |
+
+每个 APK 都是完整安装包，只需下载其中一个，不需要把多个架构包一起安装。以手机系统支持的架构为准，不能只看 CPU 是否为 64 位。Release 的 `SHA256SUMS.txt` 提供五个 APK 的文件校验值。
 
 1. 将 APK 下载到手机，点击安装。
 2. 如果系统提示不允许安装，给你正在使用的浏览器或文件管理器开启“允许安装未知应用”。
@@ -16,7 +26,7 @@ Android **8.0 及以上**，中文界面，无账号，离线使用。声音只�
 
 新版本直接覆盖安装，训练记录会保留。正式发布包需使用同一签名；本地 debug 包与正式包不能保证互相覆盖，卸载会删除记录。
 
-本地开发构建的安装包位于 `app\build\outputs\apk\debug\app-debug.apk`。开发构建与签名方法见 [开发指南](docs/DEVELOPMENT.md) 和 [发布指南](docs/RELEASE.md)。
+本地开发构建的通用安装包位于 `app\build\outputs\apk\debug\app-universal-debug.apk`，同目录还有各架构的开发包。开发构建与签名方法见 [开发指南](docs/DEVELOPMENT.md) 和 [发布指南](docs/RELEASE.md)。
 
 ## 唱准：听基准音，再唱目标音
 

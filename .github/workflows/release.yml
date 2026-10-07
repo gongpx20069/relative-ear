@@ -49,7 +49,7 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as output:
               output.write(f"RELEASE_KEYSTORE={path}\n")
           PY
-      - name: Test and build signed APK
+      - name: Test and build signed architecture APKs
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -57,12 +57,12 @@ jobs:
         run: |
           python -m unittest discover -s scripts -p "test_*.py"
           bash gradlew :core:test :app:lintRelease :app:assembleRelease --no-daemon
-      - name: Verify APK metadata and signature
-        run: python scripts/verify_apk.py --apk app/build/outputs/apk/release/app-release.apk --tools "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Verify complete ABI set, metadata and shared signature
+        run: python scripts/verify_apk.py --apk-dir app/build/outputs/apk/release --tools "$ANDROID_HOME/build-tools/35.0.0"
       - name: Publish using GitHub REST API
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/github_api.py release --tag "$TAG" --apk app/build/outputs/apk/release/app-release.apk
+        run: python scripts/github_api.py release --tag "$TAG" --apk-dir app/build/outputs/apk/release
       - name: Remove signing material
         if: always()
         run: rm -f "$RUNNER_TEMP/relative-ear-signing.jks"

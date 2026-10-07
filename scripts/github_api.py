@@ -11,6 +11,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from apk_artifacts import asset_name, collect_apks
 
 ROOT = Path(__file__).resolve().parent.parent
 API = "https://api.github.com"
@@ -102,14 +103,18 @@ def create_repository(client):
     print(repository["html_url"])
 
 
-def publish_release(client, tag, apk):
+def publish_release(client, tag, apk_directory):
     version = validate_tag(tag)
-    if not apk.is_file() or apk.stat().st_size == 0:
-        raise ValueError("APK is missing or empty")
-    apk_bytes = apk.read_bytes()
-    digest = hashlib.sha256(apk_bytes).hexdigest()
-    name = f"relative-ear-{version}.apk"
-    checksum = f"{digest}  {name}\n".encode()
+    _, code = read_version()
+    apks = collect_apks(apk_directory, version, code)
+    uploads = {}
+    checksums = []
+    for architecture, apk in apks.items():
+        name = asset_name(version, architecture)
+        content = apk.read_bytes()
+        uploads[name] = (content, "application/vnd.android.package-archive")
+        checksums.append(f"{hashlib.sha256(content).hexdigest()}  {name}\n")
+    uploads["SHA256SUMS.txt"] = ("".join(checksums).encode(), "text/plain")
     prefix = f"/repos/{REPO}"
     commit = client.request("GET", f"{prefix}/commits/{urllib.parse.quote(tag, safe='')}")["sha"]
     release = client.request("GET", f"{prefix}/releases/tags/{tag}", missing_ok=True)
@@ -128,29 +133,32 @@ def publish_release(client, tag, apk):
                  "live single-note melody detection and local training history.\n\n"
                  "Limitations: no song identification or reliable polyphonic/伴奏 transcription. "
                  "Device microphone accuracy still requires real-device evaluation.\n\n"
-                 f"Download `{name}` to install. Verify it against the `.sha256` file. "
+                 "Choose the APK matching your device: `arm64-v8a` for modern ARM phones, "
+                 "`armeabi-v7a` for 32-bit ARM, `x86_64` or `x86` for Intel devices/emulators. "
+                 "If unsure, choose `universal`. Each APK is independently installable.\n\n"
+                 f"Assets: `relative-ear-{version}-<architecture>.apk`. "
+                 "Verify downloads against `SHA256SUMS.txt`. "
                  "Release builds share a persistent signing key; debug builds cannot replace them.\n"
              )},
         )
     release_id = release["id"]
-    expected = {name, name + ".sha256"}
+    expected = set(uploads)
     assets = client.request("GET", f"{prefix}/releases/{release_id}/assets?per_page=100")
     if any(asset["name"] not in expected for asset in assets):
         raise ValueError("Draft contains unexpected assets; inspect it before retrying")
     for asset in assets:
         client.request("DELETE", f"{prefix}/releases/assets/{asset['id']}")
     upload = release["upload_url"].split("{", 1)[0]
-    for asset_name, content, content_type in (
-        (name, apk_bytes, "application/vnd.android.package-archive"),
-        (name + ".sha256", checksum, "text/plain"),
-    ):
+    for upload_name, (content, content_type) in uploads.items():
         result = client.request(
-            "POST", upload + "?" + urllib.parse.urlencode({"name": asset_name}), content, content_type,
+            "POST", upload + "?" + urllib.parse.urlencode({"name": upload_name}), content, content_type,
         )
         if result["state"] != "uploaded" or result["size"] != len(content):
-            raise RuntimeError(f"Asset upload was not confirmed: {asset_name}")
+            raise RuntimeError(f"Asset upload was not confirmed: {upload_name}")
     confirmed = client.request("GET", f"{prefix}/releases/{release_id}/assets?per_page=100")
-    if {asset["name"] for asset in confirmed} != expected or any(asset["state"] != "uploaded" for asset in confirmed):
+    if (len(confirmed) != len(expected) or {asset["name"] for asset in confirmed} != expected
+            or any(asset["state"] != "uploaded" or asset["size"] != len(uploads[asset["name"]][0])
+                   for asset in confirmed)):
         raise RuntimeError("Release assets are incomplete; draft will not be published")
     published = client.request("PATCH", f"{prefix}/releases/{release_id}", {"draft": False})
     print(published["html_url"])
@@ -164,7 +172,7 @@ def main():
     validate.add_argument("--tag", required=True)
     release = commands.add_parser("release")
     release.add_argument("--tag", required=True)
-    release.add_argument("--apk", required=True, type=Path)
+    release.add_argument("--apk-dir", required=True, type=Path)
     args = parser.parse_args()
     if args.command == "validate-version":
         print(validate_tag(args.tag))
@@ -175,7 +183,7 @@ def main():
     if args.command == "create-repo":
         create_repository(client)
     else:
-        publish_release(client, args.tag, args.apk)
+        publish_release(client, args.tag, args.apk_dir)
 
 
 if __name__ == "__main__":

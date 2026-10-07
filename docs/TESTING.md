@@ -23,7 +23,7 @@ python scripts\github_api.py validate-version --tag v0.0.1
 - 首个稳定答案不被后来更接近目标的声音覆盖。
 - 单音换音、静音后重复同音、短音拒绝。
 
-Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、完整上传后发布、上传失败保持 draft、禁止覆盖公开版本、缺失 APK 和 API 主机限制。不需要真实 token，也不会创建远端资源。
+Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五个架构和校验文件完整上传后发布、上传失败保持 draft、禁止覆盖公开版本、缺失 APK 和 API 主机限制。另验证 AGP 元数据完整性、版本一致、拒绝 debug/重复/残留/目录外文件、原生库 ABI 与签名证书一致。不需要真实 token，也不会创建远端资源。
 
 `HistoryStoreTest` 是 Android 仪器测试，验证 SQLite 记录、超时的 nullable cents 和删除。编译测试 APK **不等于执行测试**：
 
@@ -52,7 +52,7 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、完�
 
 ## 当前验证边界
 
-首次开发已通过领域测试、REST 模拟测试、Android debug/release APK 构建、两种构建的 Android lint，以及仪器测试 APK 编译。release 构建使用一次性本地验证密钥检查了签名及 APK 元数据，该密钥随后删除；它不是正式发布密钥，该 APK 不应用于分发或升级。
+首次开发已通过领域测试、REST 模拟测试、Android debug/release APK 构建、Android lint，以及仪器测试 APK 编译。ABI 发布改动已本地构建五个 debug 和五个 release APK，并验证 release 包的架构、版本和共享签名证书。release 构建使用一次性本地验证密钥，该密钥和对应测试签名 APK 随后删除；它们不是正式发布材料，不用于分发或升级。
 
 没有连接的 Android 设备，因此仪器测试尚未运行，真实人声录音准确率、端到端延迟及各机型效果尚未测量。REST 模拟测试和本地构建也不等于远端 Actions 已执行。
 

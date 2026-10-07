@@ -65,7 +65,9 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 
 本机没有连接的物理 Android 设备，真实人声录音准确率、端到端延迟及各机型效果尚未测量。CI 的模拟器仪器测试不替代真机音频验收。
 
-`0.0.4` 固定 C4 与新版 UI 已通过 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37608766607) 的本地逻辑/build 门禁及 API 29 模拟器 5 项仪器测试，包括数据库迁移和真实 MainActivity 操作；单独截图会话再执行两项 UI 用例。初始练习页与八音答题页真实截图已下载检查，不是设计稿合成图。CI 使用 adb-owned 截图会话收集文件，避免 Gradle 自动卸载应用时删除 App 外部目录中的图片。
+`v0.0.4` 固定 C4 与新版 UI 已通过 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37609397224) 的逻辑/build 门禁及 API 29 模拟器 5 项仪器测试，包括数据库迁移和真实 MainActivity 操作；单独截图会话再执行两项 UI 用例。初始练习页与八音答题页真实截图已下载检查并放入 README，不是设计稿合成图。CI 使用 adb-owned 截图会话收集文件，避免 Gradle 自动卸载应用时删除 App 外部目录中的图片。
+
+[v0.0.4 发布工作流](https://github.com/gongpx20069/relative-ear/actions/runs/37609401034) 已成功。公开 [Release](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.4) 的全部五个 APK 已下载验证资产完整性、SHA-256、实际原生 ABI、版本和固定签名证书一致性，可覆盖正式旧版；这是安装包与模拟器验证，不是物理手机音频验收。
 
 `v0.0.3` 已通过真实远端 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37604774774) 和 [发布工作流](https://github.com/gongpx20069/relative-ear/actions/runs/37604779847)，包含新增唱名领域测试和 App JVM 默认状态测试。已从公开 [Release](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 下载五个 APK，验证完整集合、SHA-256、实际 ABI、版本及签名证书与本机固定发布密钥一致。耳朵图标前景已进行几何渲染检查；系统启动器遮罩仍需真机检查。Release 是公开的早期 prerelease，不是 draft；这些验证不替代真实麦克风体验验收。
 

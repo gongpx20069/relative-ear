@@ -1,0 +1,186 @@
+"""GitHub repository and draft-first APK releases, using the REST API."""
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+API = "https://api.github.com"
+REPO = "gongpx20069/relative-ear"
+
+
+def read_version(path=ROOT / "version.properties"):
+    values = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        key, value = line.split("=", 1)
+        if key in values:
+            raise ValueError(f"Duplicate version property: {key}")
+        values[key.strip()] = value.strip()
+    name = values["versionName"]
+    code = int(values["versionCode"])
+    if not re.fullmatch(r"0\.0\.[1-9][0-9]*", name) or name != f"0.0.{code}" or not 1 <= code <= 2_100_000_000:
+        raise ValueError("Version must be 0.0.x with matching positive versionCode")
+    return name, code
+
+
+def validate_tag(tag):
+    version, _ = read_version()
+    if tag != f"v{version}":
+        raise ValueError(f"Tag must match version.properties: v{version}")
+    return version
+
+
+def token():
+    value = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if value:
+        return value
+    try:
+        result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=False)
+    except FileNotFoundError as error:
+        raise ValueError("Set GH_TOKEN locally or install GitHub CLI and authenticate with gh auth login") from error
+    if result.returncode or not result.stdout.strip():
+        raise ValueError("Authenticate locally with gh auth login or set GH_TOKEN; never commit a token")
+    return result.stdout.strip()
+
+
+class GitHub:
+    def __init__(self, access_token):
+        self.access_token = access_token
+
+    def request(self, method, path, data=None, content_type="application/json", missing_ok=False):
+        url = path if path.startswith("https://") else API + path
+        if urllib.parse.urlparse(url).hostname not in ("api.github.com", "uploads.github.com"):
+            raise ValueError("Unexpected GitHub API host")
+        body = json.dumps(data).encode() if isinstance(data, dict) else data
+        request = urllib.request.Request(
+            url,
+            data=body,
+            method=method,
+            headers={
+                "Authorization": f"Bearer {self.access_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "relative-ear-release",
+                "Content-Type": content_type,
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                payload = response.read()
+                return json.loads(payload) if payload else None
+        except urllib.error.HTTPError as error:
+            if missing_ok and error.code == 404:
+                return None
+            raise RuntimeError(f"GitHub REST {method} failed with HTTP {error.code}") from error
+
+
+def create_repository(client):
+    user = client.request("GET", "/user")
+    if user["login"].lower() != "gongpx20069":
+        raise ValueError("Authenticated user must be gongpx20069")
+    existing = client.request("GET", f"/repos/{REPO}", missing_ok=True)
+    if existing:
+        if existing["private"]:
+            raise ValueError("Existing repository is private; refusing to change its visibility automatically")
+        print(f"Public repository already exists: {existing['html_url']}")
+        return
+    repository = client.request(
+        "POST", "/user/repos",
+        {"name": "relative-ear", "private": False, "auto_init": False,
+         "description": "Android singing accuracy, relative pitch training and live monophonic melody detection"},
+    )
+    print(repository["html_url"])
+
+
+def publish_release(client, tag, apk):
+    version = validate_tag(tag)
+    if not apk.is_file() or apk.stat().st_size == 0:
+        raise ValueError("APK is missing or empty")
+    apk_bytes = apk.read_bytes()
+    digest = hashlib.sha256(apk_bytes).hexdigest()
+    name = f"relative-ear-{version}.apk"
+    checksum = f"{digest}  {name}\n".encode()
+    prefix = f"/repos/{REPO}"
+    commit = client.request("GET", f"{prefix}/commits/{urllib.parse.quote(tag, safe='')}")["sha"]
+    release = client.request("GET", f"{prefix}/releases/tags/{tag}", missing_ok=True)
+    if release is not None and not release["draft"]:
+        raise ValueError("Release is already published; increment the version instead of overwriting it")
+    if release is not None and release["target_commitish"] != commit:
+        raise ValueError("Existing draft references another commit")
+    if release is None:
+        release = client.request(
+            "POST", f"{prefix}/releases",
+            {"tag_name": tag, "target_commitish": commit, "name": f"Relative Ear {version}",
+             "draft": True, "prerelease": True,
+             "body": (
+                 "Android 8.0+ early preview.\n\n"
+                 "Features: interval/scale-degree listening drills, sing-back pitch scoring, "
+                 "live single-note melody detection and local training history.\n\n"
+                 "Limitations: no song identification or reliable polyphonic/伴奏 transcription. "
+                 "Device microphone accuracy still requires real-device evaluation.\n\n"
+                 f"Download `{name}` to install. Verify it against the `.sha256` file. "
+                 "Release builds share a persistent signing key; debug builds cannot replace them.\n"
+             )},
+        )
+    release_id = release["id"]
+    expected = {name, name + ".sha256"}
+    assets = client.request("GET", f"{prefix}/releases/{release_id}/assets?per_page=100")
+    if any(asset["name"] not in expected for asset in assets):
+        raise ValueError("Draft contains unexpected assets; inspect it before retrying")
+    for asset in assets:
+        client.request("DELETE", f"{prefix}/releases/assets/{asset['id']}")
+    upload = release["upload_url"].split("{", 1)[0]
+    for asset_name, content, content_type in (
+        (name, apk_bytes, "application/vnd.android.package-archive"),
+        (name + ".sha256", checksum, "text/plain"),
+    ):
+        result = client.request(
+            "POST", upload + "?" + urllib.parse.urlencode({"name": asset_name}), content, content_type,
+        )
+        if result["state"] != "uploaded" or result["size"] != len(content):
+            raise RuntimeError(f"Asset upload was not confirmed: {asset_name}")
+    confirmed = client.request("GET", f"{prefix}/releases/{release_id}/assets?per_page=100")
+    if {asset["name"] for asset in confirmed} != expected or any(asset["state"] != "uploaded" for asset in confirmed):
+        raise RuntimeError("Release assets are incomplete; draft will not be published")
+    published = client.request("PATCH", f"{prefix}/releases/{release_id}", {"draft": False})
+    print(published["html_url"])
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("create-repo")
+    validate = commands.add_parser("validate-version")
+    validate.add_argument("--tag", required=True)
+    release = commands.add_parser("release")
+    release.add_argument("--tag", required=True)
+    release.add_argument("--apk", required=True, type=Path)
+    args = parser.parse_args()
+    if args.command == "validate-version":
+        print(validate_tag(args.tag))
+        return
+    if args.command == "release":
+        validate_tag(args.tag)
+    client = GitHub(token())
+    if args.command == "create-repo":
+        create_repository(client)
+    else:
+        publish_release(client, args.tag, args.apk)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, KeyError, OSError, RuntimeError, urllib.error.URLError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        sys.exit(1)

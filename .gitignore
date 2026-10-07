@@ -18,3 +18,7 @@ keystore.properties
 
 # Local recordings
 recordings/
+
+# Python scripts
+__pycache__/
+*.pyc

@@ -1,0 +1,68 @@
+name: Publish APK
+on:
+  push:
+    tags: ['v0.0.*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate version and main ancestry
+        run: |
+          python scripts/github_api.py validate-version --tag "$TAG"
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Prepare persistent release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import base64, os
+          from pathlib import Path
+          for name in ("KEYSTORE_BASE64", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"):
+              if not os.environ.get(name):
+                  raise SystemExit(f"Missing signing secret: {name}")
+          path = Path(os.environ["RUNNER_TEMP"]) / "relative-ear-signing.jks"
+          path.write_bytes(base64.b64decode(os.environ["KEYSTORE_BASE64"], validate=True))
+          path.chmod(0o600)
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write(f"RELEASE_KEYSTORE={path}\n")
+          PY
+      - name: Test and build signed APK
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          python -m unittest discover -s scripts -p "test_*.py"
+          bash gradlew :core:test :app:lintRelease :app:assembleRelease --no-daemon
+      - name: Verify APK metadata and signature
+        run: python scripts/verify_apk.py --apk app/build/outputs/apk/release/app-release.apk --tools "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Publish using GitHub REST API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/github_api.py release --tag "$TAG" --apk app/build/outputs/apk/release/app-release.apk
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/relative-ear-signing.jks"

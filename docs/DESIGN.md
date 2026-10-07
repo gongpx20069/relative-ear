@@ -2,7 +2,7 @@
 
 文档版本：0.2（设计草案，应用版本独立采用 0.0.x）
 日期：2026-10-07  
-状态：待评审；以下性能与识别指标为验收目标，不是已测结果。
+状态：基础实现已开始；以下性能与识别指标为验收目标，不是已测结果。实际完成范围和与设计的差异见 [DEVELOPMENT.md](DEVELOPMENT.md)，验证边界见 [TESTING.md](TESTING.md)，发布流程见 [RELEASE.md](RELEASE.md)。
 
 ## 1. 产品目标
 
@@ -284,7 +284,7 @@ Idle → Preparing → Playing → Settling → Listening
 
 ### 10.2 CI 与发布链路
 
-Android 工程初始化时同步加入以下工作流，当前设计阶段不提交无法构建的占位工作流。
+工作流已随 Android 工程加入；远端运行仍需认证和签名配置，详见 [RELEASE.md](RELEASE.md)。
 
 - PR 和 main 推送：运行 JVM 测试、Android lint、APK 构建，不创建 Release。
 - 推送 `v0.0.*` 标签：严格校验标签格式及版本，检查该提交已进入 main，运行测试与 lint，构建签名 release APK。

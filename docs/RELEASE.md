@@ -119,3 +119,5 @@ python scripts\github_api.py release --tag v0.0.5 --apk-dir app\build\outputs\ap
 历史发布 [v0.0.3](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 增加首调唱名练习与耳朵图标，仍使用同一签名。Actions 已成功发布全部架构与校验文件，公开下载的五个 APK 已核对 SHA-256、实际 ABI、版本与固定证书；运行证据见 [TESTING](TESTING.md)。
 
 历史发布 [v0.0.4](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.4) 为固定 C4、自选音符范围、两种答案格式、八分音符播放与新版练习台 UI。Actions 已发布五个同签名 APK 和校验文件；完整公开下载校验及真实模拟器 UI/迁移运行证据见 [TESTING](TESTING.md)。
+
+当前发布 [v0.0.5](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.5) 增加设置里的手动检查更新、预览版发现和按架构下载提示。五个公开 APK 已核对 SHA-256、实际 ABI、版本及固定签名，匿名更新 API 也已检查；运行证据见 [TESTING](TESTING.md)。旧 App 需先手动覆盖安装此版，后续才能使用更新入口。

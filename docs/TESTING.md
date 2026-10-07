@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.1
+python scripts\github_api.py validate-version --tag v0.0.2
 ```
 
 最后一条命令发布下一版本时应使用对应标签。

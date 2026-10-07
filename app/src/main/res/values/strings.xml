@@ -60,7 +60,7 @@
     <string name="note_event">%1$s · %2$.2f s / %3$.2f s</string>
     <string name="chart_description">近 10 秒音高曲线，纵轴为 MIDI 音高</string>
     <string name="no_notes">开始监听后，持续的单音将出现在这里。同音之间请留短暂停顿。</string>
-    <string name="test_status">0.0.1 早期版本：尚需真机验证，不是专业音乐能力测评。</string>
+    <string name="test_status">早期版本：尚需真机验证，不是专业音乐能力测评。</string>
     <string-array name="interval_names">
         <item>纯一度</item><item>小二度</item><item>大二度</item>
         <item>小三度</item><item>大三度</item><item>纯四度</item>

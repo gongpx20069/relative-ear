@@ -4,7 +4,7 @@
 
 ## 当前实现
 
-应用版本 `0.0.1`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.2`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
 
 - 唱准：基准音 + 音程提示，上/下行，8 秒采集窗口，首个稳定片段评分，八度模式、容差、A4 设置。
 - 练耳：0–12 半音的音程辨认、大调级数辨认，随机基准，10 题一轮，重播、首次回答计分。

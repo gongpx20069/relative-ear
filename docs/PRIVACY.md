@@ -1,6 +1,6 @@
 # 隐私说明
 
-本文件描述当前 `0.0.1` 的数据边界；操作说明见 [README](../README.md)，技术细节见 [DEVELOPMENT](DEVELOPMENT.md)。
+本文件描述当前 `0.0.2` 的数据边界；操作说明见 [README](../README.md)，技术细节见 [DEVELOPMENT](DEVELOPMENT.md)。
 
 ## 麦克风
 

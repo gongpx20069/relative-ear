@@ -3,6 +3,7 @@ package io.github.gongpx20069.relativeear
 import android.app.Application
 import android.database.sqlite.SQLiteException
 import android.os.SystemClock
+import android.os.Build
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import io.github.gongpx20069.relativeear.core.NoteQuestion
 import io.github.gongpx20069.relativeear.core.TrainingSetup
 import io.github.gongpx20069.relativeear.core.SingingResult
 import io.github.gongpx20069.relativeear.core.SingingScorer
+import io.github.gongpx20069.relativeear.core.AppUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -30,6 +32,10 @@ import java.util.UUID
 
 enum class Screen { EAR, SING, LISTEN, HISTORY, SETTINGS }
 enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, SAVING, FEEDBACK, COMPLETE }
+data class UpdateState(
+    val checking: Boolean = false, val checked: Boolean = false, val available: AppUpdate? = null,
+    val prompt: Boolean = false, val error: String? = null,
+)
 data class UiState(
     val screen: Screen = Screen.EAR,
     val phase: Phase = Phase.IDLE,
@@ -48,12 +54,15 @@ data class UiState(
     val message: String? = null,
     val history: History = History(),
     val loaded: Boolean = false,
+    val update: UpdateState = UpdateState(),
 ) {
     val configurable: Boolean get() = loaded && phase in listOf(Phase.IDLE, Phase.COMPLETE)
     val canHearAnswer: Boolean get() = question != null && phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)
 }
 
-class EarViewModel(application: Application) : AndroidViewModel(application) {
+class EarViewModel @JvmOverloads constructor(
+    application: Application, private val updateClient: ReleaseUpdateClient = ReleaseUpdateClient(),
+) : AndroidViewModel(application) {
     private val store = HistoryStore(application)
     private val mutable = MutableStateFlow(UiState())
     val state = mutable.asStateFlow()
@@ -316,5 +325,29 @@ class EarViewModel(application: Application) : AndroidViewModel(application) {
                 mutable.update { it.copy(history = History(), message = null) }
             }
         }
+    }
+    fun checkForUpdates() {
+        if (state.value.update.checking) return
+        mutable.update { it.copy(update = UpdateState(checking = true)) }
+        viewModelScope.launch {
+            try {
+                val available = withContext(Dispatchers.IO) {
+                    updateClient.check(BuildConfig.VERSION_CODE, Build.SUPPORTED_ABIS.toList())
+                }
+                mutable.update { it.copy(update = UpdateState(checked = true, available = available, prompt = available != null)) }
+            } catch (error: IOException) {
+                Log.w("RelativeEar", "Release update check failed", error)
+                val message = text(when ((error as? UpdateCheckException)?.reason) {
+                    UpdateFailure.INVALID_RELEASE -> R.string.update_invalid_release
+                    UpdateFailure.ACCESS_RESTRICTED -> R.string.update_restricted
+                    null -> R.string.update_network_error
+                })
+                mutable.update { it.copy(update = UpdateState(error = message)) }
+            }
+        }
+    }
+    fun dismissUpdatePrompt() { mutable.update { it.copy(update = it.update.copy(prompt = false)) } }
+    fun updateOpenFailed() {
+        mutable.update { it.copy(update = it.update.copy(error = text(R.string.update_open_error))) }
     }
 }

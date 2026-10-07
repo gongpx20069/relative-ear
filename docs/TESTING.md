@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.4
+python scripts\github_api.py validate-version --tag v0.0.5
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -25,6 +25,7 @@ python scripts\github_api.py validate-version --tag v0.0.4
 - 400 ms 实际时间、稀疏帧拒绝、不稳定双峰分布拒绝、容差边界和严格/忽略八度评分。
 - 首个稳定答案不被后来更接近目标的声音覆盖。
 - 单音换音、静音后重复同音、短音拒绝。
+- 更新数值比较（0.0.10 大于 0.0.9）、不降级、忽略 draft/未发布、包含预览版、四种 ABI 顺序/universal、完整资产与官方 URL 校验；最新资产缺失须报错而非退回旧版。
 
 Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五个架构和校验文件完整上传后发布、上传失败保持 draft、禁止覆盖公开版本、缺失 APK 和 API 主机限制。另验证 AGP 元数据完整性、版本一致、拒绝 debug/重复/残留/目录外文件、原生库 ABI 与签名证书一致。不需要真实 token，也不会创建远端资源。
 
@@ -37,6 +38,8 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 此测试会清空测试 App 的记录，只能在测试设备/模拟器运行，不要在有需要保留数据的日常安装上运行。
 
 CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` artifact 包含截图与仪器测试报告。模拟器不验证真实手机麦克风或扬声器音准。
+
+`ReleaseUpdateClientTest` 使用真实 Android JSON 解析器与离线 fixture 验证分页、预览版、异常数据、断网及页数上限。`UpdateSettingsTest` 注入无网络 client，验证不自动请求、手动查询后弹出新版提示、按设备 ABI 交给打开链接回调，以及失败后重试/无更新。此测试不依赖 GitHub 在线可用性，也不会实际下载安装包。
 
 ## 真机检查清单
 
@@ -56,6 +59,7 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 12. 中断答后示范仍回到反馈；试听和答题使用同一固定音高，改变播放速度不限制答题时长。
 13. 八分音符 60/80/100/120 BPM 的实际输出、谱位随试听同步；答前的装饰图标不泄露音高。
 14. 从旧版覆盖升级，旧首调/音程行保持并标注；范围/显示/速度在重启后保留，新记录含配置快照。
+15. 设置手动检查更新：公开预览版能被发现，无更新、断网、限流、无浏览器都明确反馈；提示版本/架构正确，浏览器下载后可覆盖安装且历史保留。启动与进入设置不自动联网。
 
 复杂音乐可能被单音算法误判，不能通过只演示清晰哼唱宣称歌曲主旋律识别已完成。
 

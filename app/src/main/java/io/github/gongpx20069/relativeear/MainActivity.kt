@@ -1,8 +1,12 @@
 package io.github.gongpx20069.relativeear
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -470,6 +474,21 @@ private fun HistoryPage(state: UiState) {
 
 @Composable
 private fun SettingsPage(state: UiState, model: EarViewModel) {
+    val context = LocalContext.current
+    UpdateSettings(state.update, model::checkForUpdates, model::dismissUpdatePrompt) { url ->
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE))
+            true
+        } catch (error: ActivityNotFoundException) {
+            Log.w("RelativeEar", "No application can open update URL", error)
+            model.updateOpenFailed()
+            false
+        } catch (error: SecurityException) {
+            Log.w("RelativeEar", "Opening update URL denied", error)
+            model.updateOpenFailed()
+            false
+        }
+    }
     SectionCard(stringResource(R.string.tuning_title)) {
         var a4 by remember { mutableFloatStateOf(state.settings.a4.toFloat()) }
         LaunchedEffect(state.settings.a4) { a4 = state.settings.a4.toFloat() }

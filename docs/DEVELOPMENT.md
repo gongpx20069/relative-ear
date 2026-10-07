@@ -4,7 +4,7 @@
 
 ## 当前实现
 
-应用版本 `0.0.4`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.5`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
 - 快速记忆：单音试听与带实时谱位标签的示范，答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
@@ -15,6 +15,7 @@
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置，最近 100 条报告、确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
 - GitHub Actions：测试、lint、构建；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
+- 设置更新：手动查询公开 Releases（包含 prerelease），数值比较 0.0.x 版本、ABI 选包、下载提示与发布说明；不后台检查或自动安装，网络与资产异常有显式提示。
 
 尚未实现：弱项推荐、独立考试模式、C4–C5 自然音以外的训练音库、完整旋律模唱与节奏评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
 
@@ -25,7 +26,7 @@
 - Python 3.10+，用于 REST 发布及其测试，仅用标准库。
 - Gradle Wrapper 8.11.1（固定分发 SHA-256），无需全局安装 Gradle。
 
-首次构建需要联网下载依赖；运行 App 不需要联网。
+首次构建需要联网下载依赖；训练与识音不需要联网，手动检查更新需要联网。
 
 Windows PowerShell 示例：
 
@@ -57,6 +58,8 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 | `app` / AudioEngine | 16 kHz 单声道 PCM 采集/合成播放、播放焦点与资源释放 |
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
 | `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
+| `core` / AppUpdates | 数值版本比较、已发布候选、完整资产/官方地址校验与系统 ABI 优先选包 |
+| `app` / ReleaseUpdateClient、UpdateSettings | 无凭据 HTTPS 查询、分页与错误处理、设置卡片与下载提示 |
 | `app` / MainActivity、EarTheme、MusicArtwork | Compose 页面、统一主题、音符谱位与导航图标、预览、权限请求、后台中断 |
 | `scripts` | GitHub REST 仓库/Release、AGP 输出元数据读取、ABI/签名验证及标准库测试 |
 
@@ -82,6 +85,10 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 录音源使用 `VOICE_RECOGNITION`，设备仍可能存在信号处理或路由差异。首版没有后台录音服务，也不尝试跨设备统一蓝牙体验。
 
 ## 维护约定
+
+更新查询读取 `/repos/gongpx20069/relative-ear/releases` 而非 `/releases/latest`，因为现有发行版均为 prerelease。每页 30 条，最多 20 页，每页至多 2 MiB，连接/读取超时均为 10 秒；超过边界不报告“暂无更新”，而是失败并提供发布页面入口。新版本必须包含完整五个 APK 和 SHA256SUMS，状态为 uploaded、大小非零、地址精确属于相应官方标签；手机按 `Build.SUPPORTED_ABIS` 的顺序选包，未知架构退回 universal。检查不下载或在手机验证 APK 的 SHA-256，只验证发布元数据；真实资产签名/校验门禁由发布工作流负责。
+
+`BuildConfig.VERSION_CODE/NAME` 由唯一版本文件生成。`EarViewModel` 保留 Application 单参数 JVM 构造器给 Android 工厂，并支持测试注入无网络 client；更新状态独立于训练阶段，不触发麦克风或写入历史。
 
 - 新功能的领域计算先加入 `core` 测试，再接 UI。
 - 错误必须有 UI 提示；保存失败不能说成绩已成功保存。

@@ -4,25 +4,32 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +41,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +48,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -50,11 +57,16 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.gongpx20069.relativeear.core.AnswerNotation
+import io.github.gongpx20069.relativeear.core.FixedTraining
 import io.github.gongpx20069.relativeear.core.Music
-import io.github.gongpx20069.relativeear.core.Solfege
-import io.github.gongpx20069.relativeear.core.SolfegeLesson
+import io.github.gongpx20069.relativeear.core.NoteQuestion
+import io.github.gongpx20069.relativeear.core.TrainingSetup
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -63,12 +75,11 @@ class MainActivity : ComponentActivity() {
     private val model: EarViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF286A58))) {
-                EarApp(model)
-            }
-        }
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+        )
+        setContent { EarTheme { EarApp(model) } }
     }
     override fun onStop() {
         model.interrupt()
@@ -97,238 +108,419 @@ private fun EarApp(model: EarViewModel) {
             permission.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
-    val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.report_tab, R.string.settings_tab)
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                Screen.entries.forEachIndexed { index, screen ->
-                    val label = stringResource(labels[index])
-                    NavigationBarItem(
-                        selected = state.screen == screen,
-                        onClick = { if (state.screen != screen) model.select(screen) },
-                        icon = { Text(label.take(1)) },
-                        label = { Text(label) },
-                    )
-                }
-            }
-        },
-    ) { padding ->
-        Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
-            Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge)
-            state.message?.let { message ->
-                Card(Modifier.fillMaxWidth()) { Text(message, Modifier.padding(16.dp)) }
-            }
-            if (!state.loaded) OutlinedButton(onClick = model::reload) { Text(stringResource(R.string.reload)) }
-            when (state.screen) {
-                Screen.SING, Screen.EAR -> TrainingPage(state, model, ::microphoneAction)
-                Screen.LISTEN -> ListeningPage(state, model, ::microphoneAction)
-                Screen.HISTORY -> HistoryPage(state)
-                Screen.SETTINGS -> SettingsPage(state, model)
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.test_status), style = MaterialTheme.typography.bodySmall)
+    AppShell(state, model::select, model::reload) {
+        when (state.screen) {
+            Screen.SING, Screen.EAR -> TrainingPage(state, model::configure,
+                if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
+                model::replay, model::playReference, model::previewNote, model::answer, model::interrupt)
+            Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening)
+            Screen.HISTORY -> HistoryPage(state)
+            Screen.SETTINGS -> SettingsPage(state, model)
         }
     }
 }
 
 @Composable
-private fun TrainingPage(state: UiState, model: EarViewModel, microphoneAction: () -> Unit) {
+private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () -> Unit, content: @Composable () -> Unit) {
+    val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.report_tab, R.string.settings_tab)
+    val titles = listOf(R.string.ear_title, R.string.sing_title, R.string.listen_title, R.string.history_title, R.string.settings_title)
+    Scaffold(bottomBar = {
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+            Screen.entries.forEachIndexed { index, screen ->
+                NavigationBarItem(selected = state.screen == screen,
+                    enabled = state.phase != Phase.SAVING,
+                    onClick = { if (state.screen != screen) onSelect(screen) },
+                    icon = { NavigationArtwork(screen) }, label = { Text(stringResource(labels[index])) })
+            }
+        }
+    }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(8.dp).background(Pine, RoundedCornerShape(4.dp)))
+                Text("RELATIVE EAR", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 2.sp)
+            }
+            Text(stringResource(titles[state.screen.ordinal]), style = MaterialTheme.typography.headlineLarge)
+            state.message?.let { message ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Text(message, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            if (!state.loaded) OutlinedButton(onClick = onReload) { Text(stringResource(R.string.reload)) }
+            content()
+            Text(stringResource(R.string.test_status), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(title: String, content: @Composable () -> Unit) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun NoteLabel(note: Int, notation: AnswerNotation, large: Boolean = false) {
+    val names = stringArrayResource(R.array.fixed_solfege_names)
+    val degree = checkNotNull(FixedTraining.degree(note))
+    val primary = if (notation == AnswerNotation.SOLFEGE) names[degree] else Music.name(note)
+    val secondary = if (notation == AnswerNotation.SOLFEGE) Music.name(note) else names[degree]
+    Text(primary, fontSize = if (large) 28.sp else 21.sp, fontWeight = FontWeight.SemiBold)
+    Text(secondary, style = MaterialTheme.typography.labelMedium)
+}
+
+@Composable
+private fun TrainingPage(
+    state: UiState, onConfigure: (TrainingSetup) -> Unit, onStart: () -> Unit, onReplay: () -> Unit,
+    onReference: (Boolean) -> Unit, onPreview: (Int) -> Unit, onAnswer: (Int) -> Unit, onStop: () -> Unit,
+) {
     val singing = state.screen == Screen.SING
-    Text(stringResource(if (singing) R.string.sing_intro else R.string.ear_intro))
-    Text(stringResource(R.string.movable_do_hint), style = MaterialTheme.typography.bodySmall)
-    val solfegeNames = stringArrayResource(R.array.solfege_names)
-    val configEnabled = state.phase == Phase.IDLE || state.phase == Phase.COMPLETE
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(selected = state.lesson == SolfegeLesson.THREE_NOTES,
-            onClick = { model.configure(SolfegeLesson.THREE_NOTES) }, enabled = configEnabled,
-            label = { Text(stringResource(R.string.three_notes)) })
-        FilterChip(selected = state.lesson == SolfegeLesson.SEVEN_NOTES,
-            onClick = { model.configure(SolfegeLesson.SEVEN_NOTES) }, enabled = configEnabled,
-            label = { Text(stringResource(R.string.seven_notes)) })
+    TrainingConfiguration(state, onConfigure)
+    val shownNote = state.demoNote ?: state.question?.target?.takeIf {
+        singing || state.phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)
     }
-    Text(stringResource(R.string.reference_order,
-        state.lesson.degrees.joinToString(" / ") { solfegeNames[it] }),
-        style = MaterialTheme.typography.bodySmall)
-    if (configEnabled) {
-        OutlinedButton(onClick = { model.playReference() }, enabled = state.loaded) {
-            Text(stringResource(R.string.play_reference))
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Pine)) {
+        Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.fixed_anchor), color = Mint, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.rhythm_badge, state.training.bpm), color = Mint,
+                    style = MaterialTheme.typography.labelMedium)
+            }
+            NoteStaff(shownNote)
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (shownNote != null) {
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.material3.LocalContentColor provides Color.White,
+                    ) { NoteLabel(shownNote, state.training.notation, large = true) }
+                } else Text(stringResource(if (state.phase == Phase.IDLE) R.string.training_hero else R.string.hear_the_note),
+                    color = Color.White, style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(when (state.phase) {
+                    Phase.PLAYING -> R.string.playing
+                    Phase.DEMONSTRATING -> R.string.demonstrating
+                    Phase.LISTENING -> R.string.sing_now
+                    Phase.ANSWERING -> R.string.answer_now
+                    Phase.SAVING -> R.string.saving
+                    Phase.COMPLETE -> R.string.round_complete
+                    Phase.FEEDBACK -> R.string.feedback_hint
+                    else -> if (singing) R.string.fixed_sing_hint else R.string.fixed_ear_hint
+                }), Modifier.padding(top = 6.dp), color = Mint, style = MaterialTheme.typography.bodySmall)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(10) { index ->
+                    Box(Modifier.weight(1f).height(4.dp).background(
+                        if (index < state.answered) WarmGold else Mint.copy(alpha = 0.2f), RoundedCornerShape(2.dp)))
+                }
+            }
+            Text(stringResource(R.string.training_progress, state.answered, state.correct), color = Mint,
+                style = MaterialTheme.typography.labelMedium)
         }
     }
-    state.doRoot?.let { root ->
-        Text(stringResource(R.string.do_reference, Music.name(root)))
-    }
-    val question = state.question
-    if (question != null) {
-        Text(stringResource(R.string.question_count, state.count))
-        if (singing) {
-            Text(stringResource(R.string.sing_target, solfegeNames[question.answer]),
-                style = MaterialTheme.typography.titleLarge)
-        }
-    }
-    Text(stringResource(when (state.phase) {
-        Phase.PLAYING -> R.string.playing
-        Phase.DEMONSTRATING -> R.string.demonstrating
-        Phase.LISTENING -> R.string.sing_now
-        Phase.ANSWERING -> R.string.answer_now
-        Phase.SAVING -> R.string.saving
-        Phase.COMPLETE -> R.string.round_complete
-        else -> R.string.ready
-    }))
     if (singing && state.phase == Phase.LISTENING) PitchReadout(state)
     when (state.phase) {
-        Phase.IDLE, Phase.COMPLETE -> Button(
-            onClick = if (singing) microphoneAction else model::startQuestion,
-            enabled = state.loaded,
-        ) { Text(stringResource(if (singing) R.string.start_singing else R.string.start_round)) }
-        Phase.FEEDBACK -> Button(onClick = if (singing) microphoneAction else model::startQuestion) {
-            Text(stringResource(R.string.next_question))
+        Phase.IDLE, Phase.COMPLETE, Phase.FEEDBACK -> {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (state.canHearAnswer || state.configurable) {
+                    OutlinedButton(onClick = { onReference(state.canHearAnswer) },
+                        enabled = state.loaded, modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)) {
+                        Text(stringResource(if (state.canHearAnswer) R.string.play_answer else R.string.play_reference))
+                    }
+                }
+                Button(onClick = onStart, enabled = state.loaded, modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp)) {
+                    Text(stringResource(when (state.phase) {
+                        Phase.FEEDBACK -> R.string.next_question
+                        Phase.COMPLETE -> R.string.new_round
+                        else -> if (singing) R.string.start_singing else R.string.start_round
+                    }))
+                }
+            }
         }
         Phase.ANSWERING -> {
-            val answers = state.lesson.degrees
-            answers.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    row.forEach { answer ->
-                        OutlinedButton(onClick = { model.answer(answer) }, modifier = Modifier.weight(1f)) {
-                            Text(solfegeNames[answer])
+            SectionCard(stringResource(R.string.choose_note)) {
+                state.training.notes.chunked(3).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { note ->
+                            OutlinedButton(onClick = { onAnswer(note) }, modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp), contentPadding = PaddingValues(vertical = 16.dp, horizontal = 4.dp)) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) { NoteLabel(note, state.training.notation) }
+                            }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                TextButton(onClick = onReplay) { Text(stringResource(R.string.replay)) }
+            }
+        }
+        Phase.SAVING -> Unit
+        else -> OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.stop)) }
+    }
+    if (state.phase in listOf(Phase.IDLE, Phase.COMPLETE, Phase.DEMONSTRATING)) {
+        SectionCard(stringResource(R.string.note_library)) {
+            Text(stringResource(R.string.library_hint), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            state.training.notes.chunked(4).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    row.forEach { note ->
+                        OutlinedButton(onClick = { onPreview(note) }, enabled = state.configurable,
+                            modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(vertical = 14.dp, horizontal = 2.dp)) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                NoteLabel(note, state.training.notation)
+                            }
                         }
                     }
                 }
             }
-            OutlinedButton(onClick = model::replay) { Text(stringResource(R.string.replay)) }
-        }
-        Phase.SAVING -> Unit
-        else -> OutlinedButton(onClick = model::interrupt) { Text(stringResource(R.string.stop)) }
-    }
-    if (question != null && state.phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)) {
-        OutlinedButton(onClick = { model.playReference(answer = true) }) {
-            Text(stringResource(R.string.play_answer))
         }
     }
-    if (state.answered > 0) Text(stringResource(R.string.round_result, state.correct, state.answered))
+}
+
+@Composable
+private fun TrainingConfiguration(state: UiState, onConfigure: (TrainingSetup) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var rangeError by remember { mutableStateOf(false) }
+    LaunchedEffect(state.phase) {
+        if (state.phase in listOf(Phase.PLAYING, Phase.ANSWERING, Phase.LISTENING, Phase.DEMONSTRATING)) expanded = false
+    }
+    val setup = state.training
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.training_setup), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.setup_summary, setup.notes.joinToString(" / ") { Music.name(it) },
+                        stringResource(if (setup.notation == AnswerNotation.SOLFEGE) R.string.solfege_option else R.string.note_name_option)),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = { expanded = !expanded }, enabled = state.configurable) {
+                    Text(stringResource(if (expanded) R.string.collapse else R.string.edit_setup))
+                }
+            }
+            if (expanded) {
+                Text(stringResource(R.string.range_title), style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(FixedTraining.beginner to R.string.three_notes, FixedTraining.fiveNotes to R.string.five_notes,
+                        FixedTraining.notes to R.string.eight_notes).forEach { (notes, label) ->
+                        FilterChip(selected = setup.notes == notes, enabled = state.configurable,
+                            onClick = { rangeError = false; onConfigure(setup.copy(notes = notes)) },
+                            label = { Text(stringResource(label)) })
+                    }
+                }
+                Text(stringResource(R.string.custom_range_hint), style = MaterialTheme.typography.bodySmall)
+                FixedTraining.notes.chunked(4).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { note ->
+                            val selected = note in setup.notes
+                            FilterChip(selected = selected, enabled = state.configurable, onClick = {
+                                if (selected && setup.notes.size == 1) rangeError = true
+                                else {
+                                    rangeError = false
+                                    onConfigure(setup.copy(notes = if (selected) setup.notes - note else (setup.notes + note).sorted()))
+                                }
+                            }, label = { Text(Music.name(note)) })
+                        }
+                    }
+                }
+                if (rangeError) Text(stringResource(R.string.range_empty_error), color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.answer_style), style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AnswerNotation.entries.forEach { notation ->
+                        FilterChip(selected = setup.notation == notation, enabled = state.configurable,
+                            onClick = { onConfigure(setup.copy(notation = notation)) },
+                            label = { Text(stringResource(if (notation == AnswerNotation.SOLFEGE)
+                                R.string.solfege_option else R.string.note_name_option)) })
+                    }
+                }
+                Text(stringResource(R.string.tempo_title), style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FixedTraining.tempos.forEach { bpm ->
+                        FilterChip(selected = setup.bpm == bpm, enabled = state.configurable,
+                            onClick = { onConfigure(setup.copy(bpm = bpm)) }, label = { Text("$bpm") })
+                    }
+                }
+                Text(stringResource(R.string.eighth_hint, setup.timing.slotMs),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 }
 
 @Composable
 private fun PitchReadout(state: UiState) {
-    val frame = state.frame
-    val frequency = frame?.frequency
-    if (frequency == null || frame.confidence < 0.85) {
-        Text(stringResource(R.string.no_pitch), style = MaterialTheme.typography.titleMedium)
-    } else {
-        val midi = Music.nearest(frequency, state.settings.a4.toDouble())
-        val question = state.question
-        if (state.screen == Screen.SING && question != null) {
-            val names = stringArrayResource(R.array.solfege_names)
-            val degree = Solfege.degree(midi, question.root)
-            val name = degree?.let { names[it] } ?: stringResource(R.string.chromatic_pitch)
-            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()),
-                question.target, state.settings.ignoreOctave)
-            Text(stringResource(R.string.sing_live_readout, name, cents),
-                style = MaterialTheme.typography.titleLarge)
+    SectionCard(stringResource(R.string.live_pitch)) {
+        val frame = state.frame
+        val frequency = frame?.frequency
+        if (frequency == null || frame.confidence < 0.85) {
+            Text(stringResource(R.string.no_pitch), style = MaterialTheme.typography.titleMedium)
         } else {
-            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()), midi, false)
+            val midi = Music.nearest(frequency, state.settings.a4.toDouble())
+            val question = state.question
+            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()),
+                if (state.screen == Screen.SING && question != null) question.target else midi,
+                state.screen == Screen.SING && state.settings.ignoreOctave)
+            Text(Music.name(midi), style = MaterialTheme.typography.headlineLarge)
             Text(stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents),
-                style = MaterialTheme.typography.titleLarge)
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val gaugeDescription = stringResource(R.string.tuning_description, cents)
+            val primary = MaterialTheme.colorScheme.primary
+            Canvas(Modifier.fillMaxWidth().height(26.dp).semantics { contentDescription = gaugeDescription }) {
+                drawLine(Color(0xFFE0E6DE), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 4.dp.toPx())
+                drawLine(primary, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), 2.dp.toPx())
+                drawCircle(primary, 6.dp.toPx(), Offset(((cents.coerceIn(-50.0, 50.0) + 50) / 100 * size.width).toFloat(),
+                    size.height / 2))
+            }
         }
-    }
-    val description = stringResource(R.string.chart_description)
-    val color = MaterialTheme.colorScheme.primary
-    Canvas(Modifier.fillMaxWidth().height(140.dp).semantics { contentDescription = description }) {
-        for (line in 0..4) {
-            val y = size.height * line / 4
-            drawLine(Color.LightGray, Offset(0f, y), Offset(size.width, y))
-        }
-        val newest = state.curve.lastOrNull()?.timeMs ?: return@Canvas
-        var previous: Offset? = null
-        for (entry in state.curve) {
-            val frequencyValue = entry.frequency
-            if (frequencyValue == null || entry.confidence < 0.85) { previous = null; continue }
-            val midi = Music.midi(frequencyValue, state.settings.a4.toDouble())
-            val point = Offset(
-                (1 - (newest - entry.timeMs) / 10_000f) * size.width,
-                (1 - ((midi - 36) / 48).toFloat().coerceIn(0f, 1f)) * size.height,
-            )
-            previous?.let { drawLine(color, it, point, strokeWidth = 3.dp.toPx()) }
-            previous = point
+        val description = stringResource(R.string.chart_description)
+        val color = MaterialTheme.colorScheme.primary
+        Canvas(Modifier.fillMaxWidth().height(110.dp).semantics { contentDescription = description }) {
+            for (line in 0..4) {
+                val y = size.height * line / 4
+                drawLine(Color(0xFFE0E6DE), Offset(0f, y), Offset(size.width, y))
+            }
+            val newest = state.curve.lastOrNull()?.timeMs ?: return@Canvas
+            var previous: Offset? = null
+            for (entry in state.curve) {
+                val value = entry.frequency
+                if (value == null || entry.confidence < 0.85) { previous = null; continue }
+                val midi = Music.midi(value, state.settings.a4.toDouble())
+                val point = Offset((1 - (newest - entry.timeMs) / 10_000f) * size.width,
+                    (1 - ((midi - 36) / 48).toFloat().coerceIn(0f, 1f)) * size.height)
+                previous?.let { drawLine(color, it, point, strokeWidth = 2.dp.toPx()) }
+                previous = point
+            }
         }
     }
 }
 
 @Composable
-private fun ListeningPage(state: UiState, model: EarViewModel, microphoneAction: () -> Unit) {
-    Text(stringResource(R.string.listen_intro))
+private fun ListeningPage(state: UiState, onStart: () -> Unit, onStop: () -> Unit) {
+    Text(stringResource(R.string.listen_intro), color = MaterialTheme.colorScheme.onSurfaceVariant)
     PitchReadout(state)
-    Button(onClick = if (state.phase == Phase.LISTENING) model::stopListening else microphoneAction,
-        enabled = state.loaded) {
+    Button(onClick = if (state.phase == Phase.LISTENING) onStop else onStart,
+        enabled = state.loaded, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
         Text(stringResource(if (state.phase == Phase.LISTENING) R.string.stop else R.string.start_listening))
     }
-    Text(stringResource(R.string.notes_title), style = MaterialTheme.typography.titleMedium)
-    if (state.notes.isEmpty()) Text(stringResource(R.string.no_notes))
-    state.notes.asReversed().forEach {
-        Text(stringResource(R.string.note_event, Music.name(it.midi), it.startMs / 1000.0, it.durationMs / 1000.0))
+    SectionCard(stringResource(R.string.notes_title)) {
+        if (state.notes.isEmpty()) Text(stringResource(R.string.no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        state.notes.asReversed().forEach {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(Music.name(it.midi), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.note_timing, it.startMs / 1000.0, it.durationMs / 1000.0))
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 }
 
 @Composable
 private fun HistoryPage(state: UiState) {
     val history = state.history
-    Text(stringResource(R.string.history_summary, history.total, history.correct))
-    if (history.attempts.isEmpty()) Text(stringResource(R.string.empty_history))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        listOf(R.string.total_attempts to history.total.toString(), R.string.accuracy to
+            "${if (history.total == 0) 0 else history.correct * 100 / history.total}%").forEach { (label, value) ->
+            Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(value, style = MaterialTheme.typography.headlineLarge)
+                    Text(stringResource(label), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+    Text(stringResource(R.string.history_scope_hint), style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (history.attempts.isEmpty()) SectionCard(stringResource(R.string.recent_practice)) {
+        Text(stringResource(R.string.empty_history))
+    }
     val format = remember { DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
     history.attempts.forEach { attempt ->
         val mode = stringResource(when (attempt.mode) {
-            "sing_degree" -> R.string.sing_tab
+            "fixed_note" -> R.string.ear_tab
+            "sing_fixed" -> R.string.sing_tab
+            "sing_degree", "degree" -> R.string.legacy_solfege
             "sing" -> R.string.legacy_singing
-            "degree" -> R.string.degree_mode
             else -> R.string.legacy_interval
         })
-        val result = stringResource(when {
-            attempt.timeout -> R.string.history_timeout
-            attempt.correct -> R.string.correct
-            else -> R.string.history_wrong
-        })
-        Text(stringResource(R.string.history_row, format.format(Instant.ofEpochMilli(attempt.timeMs)), mode, result))
-        attempt.cents?.let { Text(stringResource(R.string.history_cents, it)) }
-        HorizontalDivider()
+        SectionCard(mode) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(Music.name(attempt.target), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(when {
+                    attempt.timeout -> R.string.history_timeout
+                    attempt.correct -> R.string.correct
+                    else -> R.string.history_wrong
+                }), color = if (attempt.correct) Pine else MaterialTheme.colorScheme.error)
+            }
+            Text(format.format(Instant.ofEpochMilli(attempt.timeMs)), style = MaterialTheme.typography.bodySmall)
+            attempt.training?.let { setup ->
+                Text(stringResource(R.string.history_training, setup.notes.joinToString("/") { Music.name(it) },
+                    setup.bpm, stringResource(if (setup.notation == AnswerNotation.SOLFEGE)
+                        R.string.solfege_option else R.string.note_name_option)), style = MaterialTheme.typography.bodySmall)
+            }
+            attempt.cents?.let { Text(stringResource(R.string.history_cents, it)) }
+        }
     }
 }
 
 @Composable
 private fun SettingsPage(state: UiState, model: EarViewModel) {
-    Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
-    var a4 by remember { mutableFloatStateOf(state.settings.a4.toFloat()) }
-    LaunchedEffect(state.settings.a4) { a4 = state.settings.a4.toFloat() }
-    Text(stringResource(R.string.a4_label, a4.toInt()))
-    Slider(value = a4, onValueChange = { a4 = it }, valueRange = 415f..466f, steps = 50,
-        onValueChangeFinished = { model.settings(state.settings.copy(a4 = a4.toInt())) })
-    Text(stringResource(R.string.tolerance_label, state.settings.tolerance))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(20, 35, 50).forEach { tolerance ->
-            FilterChip(selected = state.settings.tolerance == tolerance,
-                onClick = { model.settings(state.settings.copy(tolerance = tolerance)) },
-                label = { Text("±$tolerance") })
+    SectionCard(stringResource(R.string.tuning_title)) {
+        var a4 by remember { mutableFloatStateOf(state.settings.a4.toFloat()) }
+        LaunchedEffect(state.settings.a4) { a4 = state.settings.a4.toFloat() }
+        Text(stringResource(R.string.a4_label, a4.toInt()), style = MaterialTheme.typography.titleLarge)
+        Slider(value = a4, onValueChange = { a4 = it }, valueRange = 415f..466f, steps = 50,
+            enabled = state.loaded,
+            onValueChangeFinished = { model.settings(state.settings.copy(a4 = a4.toInt())) })
+        Text(stringResource(R.string.standard_tuning_hint), style = MaterialTheme.typography.bodySmall)
+    }
+    SectionCard(stringResource(R.string.singing_settings)) {
+        Text(stringResource(R.string.tolerance_label, state.settings.tolerance))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(20, 35, 50).forEach { tolerance ->
+                FilterChip(selected = state.settings.tolerance == tolerance, enabled = state.loaded,
+                    onClick = { model.settings(state.settings.copy(tolerance = tolerance)) },
+                    label = { Text("±$tolerance") })
+            }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.octave_label), Modifier.weight(1f))
+            Switch(checked = state.settings.ignoreOctave, enabled = state.loaded,
+                onCheckedChange = { model.settings(state.settings.copy(ignoreOctave = it)) })
+        }
+        Text(stringResource(R.string.fixed_octave_hint), style = MaterialTheme.typography.bodySmall)
+    }
+    SectionCard(stringResource(R.string.privacy_title)) {
+        Text(stringResource(R.string.privacy), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.range_hint), style = MaterialTheme.typography.bodySmall)
+        var confirm by remember { mutableStateOf(false) }
+        OutlinedButton(onClick = { confirm = true }, enabled = state.loaded) { Text(stringResource(R.string.clear_data)) }
+        if (confirm) AlertDialog(onDismissRequest = { confirm = false },
+            text = { Text(stringResource(R.string.clear_confirm)) },
+            confirmButton = { TextButton(onClick = { confirm = false; model.clearHistory() }) { Text(stringResource(R.string.delete)) } },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.cancel)) } })
+    }
+}
+
+@Preview(name = "Beginner studio", widthDp = 393, heightDp = 852, showBackground = true)
+@Composable
+private fun StudioPreview() = TrainingPreview(UiState(loaded = true))
+
+@Preview(name = "Eight-note answer grid", widthDp = 360, heightDp = 800, showBackground = true)
+@Composable
+private fun AnswerPreview() = TrainingPreview(UiState(loaded = true, phase = Phase.ANSWERING,
+    training = TrainingSetup(FixedTraining.notes, AnswerNotation.NOTE_NAME), question = NoteQuestion(72), count = 1))
+
+@Composable
+private fun TrainingPreview(state: UiState) {
+    EarTheme {
+        AppShell(state, {}, {}) {
+            TrainingPage(state, {}, {}, {}, {}, {}, {}, {})
         }
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(stringResource(R.string.octave_label), Modifier.weight(1f))
-        Switch(checked = state.settings.ignoreOctave,
-            onCheckedChange = { model.settings(state.settings.copy(ignoreOctave = it)) })
-    }
-    Text(stringResource(R.string.range_hint))
-    Text(stringResource(R.string.privacy))
-    var confirm by remember { mutableStateOf(false) }
-    OutlinedButton(onClick = { confirm = true }) { Text(stringResource(R.string.clear_data)) }
-    if (confirm) AlertDialog(
-        onDismissRequest = { confirm = false },
-        text = { Text(stringResource(R.string.clear_confirm)) },
-        confirmButton = {
-            TextButton(onClick = { confirm = false; model.clearHistory() }) { Text(stringResource(R.string.delete)) }
-        },
-        dismissButton = {
-            TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.cancel)) }
-        },
-    )
 }

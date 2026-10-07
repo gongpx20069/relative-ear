@@ -4,17 +4,19 @@
 
 ## 当前实现
 
-应用版本 `0.0.3`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.4`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
 
-- 听唱名：默认入口，Do/Re/Mi 三音入门、七音进阶；同轮固定 Do、跨轮随机换调，和弦与 Do 建立调性，唱名示范、听答案、10 题一轮及首次回答计分。
-- 唱唱名：按唱名提示回唱，先播放调性上下文而非孤立基准，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认忽略八度，已有设置保留。
+- 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
+- 快速记忆：单音试听与带实时谱位标签的示范，答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
+- 唱唱名：按指定音符回唱，先播放 C4，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认区分八度，已有手动设置保留。
+- UI：奶白/松绿主题、圆角分区、练习主卡、真实底栏图标、进度与答题网格、音准指示条、配置快照历史；两种 Compose 预览支持初始与八音答题布局。
 - 图标：耳朵、听觉波纹与三点，adaptive icon 及 Android 13+ 单色主题图标，不再使用播放器式音符图标。
 - 识音：YIN 单音检测，音名/Hz/cents、音高曲线、音符分段、最近 30 音列表。
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置，最近 100 条报告、确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
 - GitHub Actions：测试、lint、构建；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
 
-尚未实现：弱项推荐、考试模式、自定义音程集合/音域、完整旋律模唱评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
+尚未实现：弱项推荐、独立考试模式、C4–C5 自然音以外的训练音库、完整旋律模唱与节奏评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
 
 ## 环境
 
@@ -47,21 +49,26 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 
 | 位置 | 职责 |
 |---|---|
-| `core` / Music、Questions、Solfege | 音高转换、首调唱名映射、三/七音题目、调性上下文和示范；保留旧音程生成器的兼容测试 |
+| `core` / FixedTraining、ToneSynthesis | 固定音符、范围/标签配置、八分音符时值、问题身份、带静音间隔的 PCM 合成 |
+| `core` / Music、Questions、Solfege | 音高转换；保留旧首调与音程生成器的兼容测试 |
 | `core` / PitchDetector | 可复用缓冲区的纯 Kotlin YIN，静音门限和置信过滤 |
 | `core` / SingingScorer | 时间窗口、有效覆盖、稳定性、目标偏差和首个有效答案 |
 | `core` / NoteSegmenter | 换音滞回、最短片段、静音分段及结束刷新 |
 | `app` / AudioEngine | 16 kHz 单声道 PCM 采集/合成播放、播放焦点与资源释放 |
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
 | `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
-| `app` / MainActivity | Compose 页面、导航、权限请求、后台中断 |
+| `app` / MainActivity、EarTheme、MusicArtwork | Compose 页面、统一主题、音符谱位与导航图标、预览、权限请求、后台中断 |
 | `scripts` | GitHub REST 仓库/Release、AGP 输出元数据读取、ABI/签名验证及标准库测试 |
 
 设计的多层 `:core:*` 模块暂合并为一个 JVM `:core`，Android 集成集中在 `:app`。初版使用系统 SQLite 和 SharedPreferences，而非 Room/DataStore，避免在基础功能验证前引入生成器；后续更换必须迁移既有数据，不删除数据库。
 
 ## 音频实现参数
 
-唱名题始终使用 `QuestionMode.DEGREE`，答案是 0–6 唱名索引而非半音距离。`doRoot` 在整轮中保持一致，示范与后续题目复用该根音。新回唱以 `sing_degree` 写入现有 TEXT 模式字段；旧 `sing`、`interval` 和 `degree` 数据不迁移或删除。示范不请求麦克风、不计分；中断答后示范须返回反馈状态，不能重复计分已完成题目。
+当前 UI 使用 `NoteQuestion`，答案身份是 MIDI 音高，C4=60、C5=72，不因唱名相同而合并。`TrainingSetup` 校验范围有序、非空、无重复且只包含 C4–C5 自然音，速度属于四档。范围/显示/速度保存到 SharedPreferences，配置只在开练前或轮次完成后修改。
+
+新模式写为 `fixed_note`、`sing_fixed`。SQLite 版本 1→2 仅添加 nullable `training_notes`、`notation`、`bpm` 三列，保留旧行与 schema；新行保存配置快照，旧行不猜测补齐。示范不请求麦克风、不计分；中断答后示范返回原反馈状态。`demoNote` 由 AudioTrack 播放头位置更新，而非提前按写入队列标记。
+
+`ToneSynthesis` 在 16 kHz PCM 中为每音保留完整半拍槽，包括 85% 发声与尾部静音；播放一次连续写入并在末尾等待输出，不累积逐音协程定时误差。音频观察任务在释放 AudioTrack 前完成取消，避免访问已释放设备。
 
 - 采样率 16 kHz，分析窗 2048 样本（128 ms），步长通常 512 样本（32 ms）。
 - 初始 RMS 门限 0.008，YIN 阈值 0.15，有效置信度至少 0.85。

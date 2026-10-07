@@ -16,16 +16,17 @@ import android.media.MediaRecorder
 import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
-import io.github.gongpx20069.relativeear.core.Music
+import io.github.gongpx20069.relativeear.core.ToneSynthesis
 import io.github.gongpx20069.relativeear.core.PitchDetector
 import io.github.gongpx20069.relativeear.core.PitchFrame
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.PI
-import kotlin.math.sin
 
 class AudioFailure(message: String, cause: Throwable? = null) : Exception(message, cause)
 
@@ -46,7 +47,11 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
         return callback
     }
 
-    suspend fun play(chords: List<List<Int>>, a4: Double) = withContext(Dispatchers.IO) {
+    suspend fun play(
+        chords: List<List<Int>>, a4: Double, soundMs: Int = 450, gapMs: Long = 100,
+        onChord: (Int) -> Unit = {},
+    ) = withContext(Dispatchers.IO) {
+        require(soundMs > 0 && gapMs >= 0 && chords.isNotEmpty() && chords.all { it.isNotEmpty() })
         val focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes)
             .setOnAudioFocusChangeListener { change ->
@@ -57,7 +62,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
         }
         val route = watchRoute()
         try {
-            val rate = 16_000
+            val rate = ToneSynthesis.SAMPLE_RATE
             val format = AudioFormat.Builder().setSampleRate(rate)
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build()
             val minimum = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
@@ -67,31 +72,36 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
             try {
                 if (track.state != AudioTrack.STATE_INITIALIZED) throw AudioFailure("播放初始化失败")
                 track.play()
-                var totalWritten = 0L
-                for (chord in chords) {
-                    val count = (rate * 0.45).toInt()
-                    val frequencies = chord.map { Music.frequency(it.toDouble(), a4) }
-                    val samples = ShortArray(count) { index ->
-                        val envelope = minOf(1.0, index / 160.0, (count - 1 - index) / 320.0).coerceAtLeast(0.0)
-                        val wave = frequencies.sumOf { sin(2 * PI * it * index / rate) } / frequencies.size
-                        (wave * envelope * 12_000).toInt().toShort()
+                val samples = ToneSynthesis.render(chords, a4, soundMs, gapMs)
+                val slot = ToneSynthesis.samplesPerTone(soundMs, gapMs)
+                val observer = launch {
+                    var announced = -1
+                    while (true) {
+                        val head = track.playbackHeadPosition.toLong()
+                        val index = (head / slot).toInt().coerceAtMost(chords.lastIndex)
+                        if (index != announced) { onChord(index); announced = index }
+                        if (head >= samples.size) break
+                        delay(10)
                     }
+                }
+                try {
                     var offset = 0
-                    while (offset < count) {
+                    while (offset < samples.size) {
                         currentCoroutineContext().ensureActive()
-                        val written = track.write(samples, offset, minOf(320, count - offset), AudioTrack.WRITE_BLOCKING)
+                        val written = track.write(samples, offset, minOf(320, samples.size - offset), AudioTrack.WRITE_BLOCKING)
                         if (written <= 0) throw AudioFailure("播放失败，错误码 $written")
                         offset += written
-                        totalWritten += written
                     }
-                    // Allow queued audio to drain before inserting a gap or opening the microphone.
+                    // Silence is part of the PCM timeline, so gaps do not accumulate coroutine timing drift.
                     var waitMs = 0
-                    while (track.playbackHeadPosition.toLong() < totalWritten && waitMs < 1000) {
+                    while (track.playbackHeadPosition.toLong() < samples.size && waitMs < 1000) {
                         delay(10)
                         waitMs += 10
                     }
-                    if (track.playbackHeadPosition.toLong() < totalWritten) throw AudioFailure("播放设备未完成输出")
-                    delay(100)
+                    if (track.playbackHeadPosition.toLong() < samples.size) throw AudioFailure("播放设备未完成输出")
+                    observer.join()
+                } finally {
+                    withContext(NonCancellable) { observer.cancelAndJoin() }
                 }
             } finally {
                 track.release()

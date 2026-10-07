@@ -56,24 +56,24 @@ Base64 是编码，不是加密，同样属于秘密。将其复制到 GitHub Se
 `version.properties` 是唯一版本来源：
 
 ```properties
-versionName=0.0.3
-versionCode=3
+versionName=0.0.4
+versionCode=4
 ```
 
-下次发布改为 `0.0.4` / `4`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
+下次发布改为 `0.0.5` / `5`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
 
 先将代码提交推送到 main，再推送相同版本标签：
 
 ```powershell
-git tag v0.0.3
-git push origin v0.0.3
+git tag v0.0.4
+git push origin v0.0.4
 ```
 
 标签必须指向已进入 main 的提交，并与工程版本一致。工作流只响应 `v0.0.*`，Python 校验进一步拒绝前导零和不匹配的版本。
 
 ## 4. CI 与发布行为
 
-- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域与 App JVM 测试、lint、debug APK 与仪器测试 APK 编译。上传五个 debug 架构包，不创建 Release。
+- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域与 App JVM 测试、lint、debug APK 与仪器测试 APK 编译；独立 API 29 模拟器任务执行数据库/迁移与 Compose UI 测试并上传真实截图。不创建 Release。
 - `release.yml`：版本标签触发，校验版本与 main 祖先关系，读取 Secrets，执行测试/lint，构建同一签名的四种 ABI release APK 和通用 APK。
 - 读取 AGP 的 `output-metadata.json`，要求五个架构完整、版本一致、属于 release，拒绝遗漏、重复、空文件和残留 APK。
 - 使用 `apksigner` 校验签名、`aapt` 校验应用 ID/版本/minSdk，并拒绝 debuggable APK；同时检查包内原生库 ABI 和五个 APK 的签名证书一致性。
@@ -91,13 +91,13 @@ git push origin v0.0.3
 | `relative-ear-0.0.x-universal.apk` | 包含上述全部原生库 |
 | `SHA256SUMS.txt` | 五个 APK 的 SHA-256 值和对应资产名 |
 
-所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.3` / `3`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
+所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.4` / `4`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
 
 本地正式构建后，先验证全部 APK，再通过 REST 发布已存在的标签：
 
 ```powershell
 python scripts\verify_apk.py --apk-dir app\build\outputs\apk\release --tools "$env:ANDROID_HOME\build-tools\35.0.0"
-python scripts\github_api.py release --tag v0.0.3 --apk-dir app\build\outputs\apk\release
+python scripts\github_api.py release --tag v0.0.4 --apk-dir app\build\outputs\apk\release
 ```
 
 正常发布仍优先使用 GitHub Actions。切换到 ABI splits 后，本地第一次构建应先执行 `.\gradlew.bat :app:clean :app:assembleRelease`，防止旧版单包输出残留；新 Actions runner 不依赖旧输出。
@@ -116,4 +116,4 @@ python scripts\github_api.py release --tag v0.0.3 --apk-dir app\build\outputs\ap
 
 首次成功发布为 [v0.0.2](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.2)，由 GitHub Actions 构建并通过 REST API 发布五个 APK 和 `SHA256SUMS.txt`。公开下载的文件已完成校验与固定签名核对；`v0.0.1` 保留为失败标签，没有移动或覆盖。
 
-当前发布 [v0.0.3](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 增加首调唱名练习与耳朵图标，仍使用同一签名。Actions 已成功发布全部架构与校验文件，公开下载的五个 APK 已核对 SHA-256、实际 ABI、版本与固定证书；运行证据见 [TESTING](TESTING.md)。
+历史发布 [v0.0.3](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 增加首调唱名练习与耳朵图标，仍使用同一签名。Actions 已成功发布全部架构与校验文件，公开下载的五个 APK 已核对 SHA-256、实际 ABI、版本与固定证书；运行证据见 [TESTING](TESTING.md)。

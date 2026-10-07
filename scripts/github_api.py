@@ -143,8 +143,9 @@ def publish_release(client, tag, apk_directory):
              "draft": True, "prerelease": True,
              "body": (
                  "Android 8.0+ early preview.\n\n"
-                 "Features: movable-Do solfege listening and singing (Do/Re/Mi first, then all seven syllables), "
-                 "tonal reference demos, sing-back pitch scoring, an ear-and-listening adaptive icon, "
+                 "Features: fixed C4=Do listening and singing, three/five/eight-note or custom C4-C5 ranges, "
+                 "solfege or C4/D4 answer labels, eighth-note playback at 60/80/100/120 BPM, "
+                 "interactive note previews, a redesigned music-studio UI, sing-back pitch scoring, "
                  "live single-note melody detection and local training history.\n\n"
                  "Limitations: no song identification or reliable polyphonic/伴奏 transcription. "
                  "Device microphone accuracy still requires real-device evaluation.\n\n"

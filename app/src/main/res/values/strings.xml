@@ -2,30 +2,77 @@
     <string name="app_name">Relative Ear</string>
     <string name="tagline">听出 Do / Re / Mi，唱准旋律</string>
     <string name="sing_tab">唱唱名</string>
-    <string name="ear_tab">听唱名</string>
+    <string name="ear_tab">练耳</string>
     <string name="listen_tab">识音</string>
     <string name="report_tab">记录</string>
     <string name="settings_tab">设置</string>
     <string name="sing_intro">先听和弦与 Do，记住当前调的感觉，再唱出指定唱名。等播放结束后再唱。</string>
     <string name="ear_intro">先记住 Do，再判断最后一个音是 Do、Re 还是 Mi。从三个音开始，熟悉后再练全部七个唱名。</string>
     <string name="movable_do_hint">首调唱名：Do 随调性变化，不固定等于 C。同一轮保持 Do 不变，新一轮随机选调。</string>
-    <string name="three_notes">Do / Re / Mi</string>
+    <string name="three_notes">三音入门</string>
+    <string name="five_notes">五音进阶</string>
+    <string name="eight_notes">八音全练</string>
+    <string name="ear_title">把声音，变成音符</string>
+    <string name="sing_title">把音符，唱进心里</string>
+    <string name="listen_title">听见身边的旋律</string>
+    <string name="history_title">每一次练习，都算数</string>
+    <string name="fixed_anchor">C4 = Do · 固定唱名</string>
+    <string name="rhythm_badge">八分音符 · %1$d BPM</string>
+    <string name="training_hero">先听一声，再认一个音</string>
+    <string name="hear_the_note">听一听，这是哪个音？</string>
+    <string name="fixed_ear_hint">先听示范记住声音，每题只听一个短音</string>
+    <string name="fixed_sing_hint">先听 C4，再唱出上方指定的音</string>
+    <string name="feedback_hint">可以复听答案，再继续下一题</string>
+    <string name="training_progress">已答 %1$d / 10 · 答对 %2$d 题</string>
+    <string name="training_setup">本轮练习</string>
+    <string name="setup_summary">%1$s · %2$s</string>
+    <string name="edit_setup">调整</string>
+    <string name="collapse">收起</string>
+    <string name="range_title">选择考核范围</string>
+    <string name="custom_range_hint">也可以自由点选 C4–C5 的自然音，只考你选中的音。</string>
+    <string name="range_empty_error">请至少保留一个音符。</string>
+    <string name="answer_style">答案显示</string>
+    <string name="solfege_option">唱名 Do / Re</string>
+    <string name="note_name_option">音名 C4 / D4</string>
+    <string name="tempo_title">速度 · BPM</string>
+    <string name="eighth_hint">八分音符占半拍：每音 %1$d 毫秒，含短促断奏间隔。速度只影响播放，不限答题时间。</string>
+    <string name="new_round">再练一轮</string>
+    <string name="choose_note">你听到的是</string>
+    <string name="note_library">音符记忆台</string>
+    <string name="library_hint">点击音符试听，先把唱名、音名和声音对上。Do↑ 表示 C5 的高八度 Do。</string>
+    <string name="staff_hidden">装饰性八分音符，答题前不显示真实音高</string>
+    <string name="staff_note">八分音符：%1$s</string>
+    <string name="invalid_answer">请选择本轮考核范围内的音符。</string>
+    <string name="live_pitch">实时音准</string>
+    <string name="tuning_description">音准偏差 %1$+.0f 音分，中心表示准确</string>
+    <string name="note_timing">%1$.2f 秒 / %2$.2f 秒</string>
+    <string name="total_attempts">累计练习</string>
+    <string name="accuracy">累计正确率</string>
+    <string name="recent_practice">最近练习</string>
+    <string name="history_scope_hint">累计包含不同范围及旧版题型，不代表统一难度的能力等级。最近保留显示 100 题。</string>
+    <string name="history_training">范围 %1$s · %2$d BPM · %3$s</string>
+    <string name="legacy_solfege">旧版首调练习</string>
+    <string name="tuning_title">调音标准</string>
+    <string name="standard_tuning_hint">默认 A4 = 440 Hz，C4 约为 261.63 Hz。改变 A4 会整体改变播放与检测的调音基准。</string>
+    <string name="singing_settings">回唱评分</string>
+    <string name="fixed_octave_hint">新用户默认区分八度。已有设置保留；开启忽略八度只影响回唱评分，听辨仍区分 C4 与 C5。</string>
+    <string name="privacy_title">隐私与本地数据</string>
     <string name="seven_notes">全部七音</string>
-    <string name="play_reference">先听唱名示范</string>
+    <string name="play_reference">听唱名示范</string>
     <string name="reference_order">示范顺序：先建立 Do，再依次听 %1$s，最后回到 Do。</string>
     <string name="play_answer">听正确答案</string>
     <string name="do_reference">本轮 Do = %1$s</string>
     <string name="sing_target">请唱 %1$s</string>
-    <string name="demonstrating">正在示范：先建立 Do，再播放唱名</string>
+    <string name="demonstrating">正在试听，记住这个音的声音</string>
     <string name="round_complete">本轮完成，可以开始新一轮</string>
-    <string name="correct_solfege">正确，最后一个音是 %1$s</string>
+    <string name="correct_solfege">答对了，声音是 %1$s</string>
     <string name="sing_live_readout">你唱的是 %1$s · 距目标 %2$+.0f 音分</string>
     <string name="chromatic_pitch">当前大调以外的音</string>
     <string name="legacy_interval">旧版音程练习</string>
     <string name="legacy_singing">旧版回唱</string>
     <string name="listen_intro">实时识别人声或乐器单音旋律。不识别歌名，不保证识别带伴奏歌曲或和弦。</string>
-    <string name="start_round">开始一轮</string>
-    <string name="start_singing">播放并开始回唱</string>
+    <string name="start_round">开始练习</string>
+    <string name="start_singing">开始回唱</string>
     <string name="replay">重播题目</string>
     <string name="next_question">下一题</string>
     <string name="stop">停止</string>
@@ -59,7 +106,7 @@
     <string name="a4_label">A4 基准：%1$d Hz</string>
     <string name="tolerance_label">音准容差：±%1$d 音分</string>
     <string name="octave_label">回唱忽略八度（允许高/低八度回答）</string>
-    <string name="range_hint">回唱基准范围：C3–C4。实时检测范围约 65–1000 Hz。</string>
+    <string name="range_hint">练习音库：C4–C5 自然音。实时检测范围约 65–1000 Hz。</string>
     <string name="privacy">声音只在本机处理，不录音保存、不上传。离开页面或切到后台会停止监听。</string>
     <string name="clear_data">删除全部训练记录</string>
     <string name="clear_confirm">删除全部记录？此操作不可撤销。</string>
@@ -85,5 +132,9 @@
     <string-array name="solfege_names">
         <item>Do（哆）</item><item>Re（来）</item><item>Mi（咪）</item>
         <item>Fa（发）</item><item>Sol（嗦）</item><item>La（拉）</item><item>Si（西）</item>
+    </string-array>
+    <string-array name="fixed_solfege_names">
+        <item>Do</item><item>Re</item><item>Mi</item><item>Fa</item>
+        <item>Sol</item><item>La</item><item>Si</item><item>Do↑</item>
     </string-array>
 </resources>

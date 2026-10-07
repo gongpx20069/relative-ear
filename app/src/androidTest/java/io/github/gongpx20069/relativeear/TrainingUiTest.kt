@@ -73,9 +73,9 @@ class TrainingUiTest {
             compose.onNode(hasClickAction() and hasText(note)).assertExists()
         }
         compose.onNodeWithContentDescription("装饰性八分音符，答题前不显示真实音高").assertExists()
-        compose.onNodeWithText("你听到的是").performScrollTo()
+        compose.onNode(hasClickAction() and hasText("C5")).performScrollTo()
         screenshot("eight-note-question.png")
-        compose.onNode(hasClickAction() and hasText("C5")).performScrollTo().performClick()
+        compose.onNode(hasClickAction() and hasText("C5")).performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("听正确答案").fetchSemanticsNodes().isNotEmpty()
         }

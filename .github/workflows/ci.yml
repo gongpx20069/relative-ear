@@ -54,7 +54,9 @@ jobs:
       - name: Exercise training UI and database upgrades
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          # Reuse the compilation platform; the emulator runtime remains Android 10.
+          api-level: 35
+          system-image-api-level: 29
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 1536

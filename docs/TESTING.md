@@ -39,6 +39,8 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 
 CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` artifact 包含截图与仪器测试报告。模拟器不验证真实手机麦克风或扬声器音准。
 
+模拟器 action 的 `api-level` 使用已安装的编译 SDK 35，`system-image-api-level` 单独指定运行镜像 29；不要把两者都设为 29，否则会额外下载本工程不使用的 SDK Platform 29。[运行 37629744920](https://github.com/gongpx20069/relative-ear/actions/runs/37629744920) 曾因此在 SDK 29 下载阶段遇到 `ZipFile unknown archive`，模拟器与测试均未启动，截图缺失是连带结果。此类准备失败不能称为 UI 断言失败，也不能靠跳过测试或忽略失败改绿；实际最新状态以 [CI 工作流](https://github.com/gongpx20069/relative-ear/actions/workflows/ci.yml) 对应提交为准。
+
 `ReleaseUpdateClientTest` 使用真实 Android JSON 解析器与离线 fixture 验证分页、预览版、异常数据、断网及页数上限。`UpdateSettingsTest` 注入无网络 client，验证不自动请求、手动查询后弹出新版提示、按设备 ABI 交给打开链接回调，以及失败后重试/无更新。此测试不依赖 GitHub 在线可用性，也不会实际下载安装包。
 
 ## 真机检查清单

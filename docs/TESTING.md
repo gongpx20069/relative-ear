@@ -60,6 +60,8 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 
 没有连接的 Android 设备，因此仪器测试尚未运行，真实人声录音准确率、端到端延迟及各机型效果尚未测量。REST 模拟测试和本地构建也不等于远端 Actions 已执行。
 
-`v0.0.2` 已通过真实远端 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37595040784) 和 [发布工作流](https://github.com/gongpx20069/relative-ear/actions/runs/37595045600)。已从公开 [Release](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.2) 下载五个 APK，验证完整集合、SHA-256、实际 ABI、版本及签名证书与本机固定发布密钥一致。Release 是公开的早期 prerelease，不是 draft；这些验证仍不替代真实麦克风体验验收。
+`v0.0.3` 已通过真实远端 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37604774774) 和 [发布工作流](https://github.com/gongpx20069/relative-ear/actions/runs/37604779847)，包含新增唱名领域测试和 App JVM 默认状态测试。已从公开 [Release](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 下载五个 APK，验证完整集合、SHA-256、实际 ABI、版本及签名证书与本机固定发布密钥一致。耳朵图标前景已进行几何渲染检查；系统启动器遮罩仍需真机检查。Release 是公开的早期 prerelease，不是 draft；这些验证不替代真实麦克风体验验收。
+
+历史版本 `v0.0.2` 的 [Android CI](https://github.com/gongpx20069/relative-ear/actions/runs/37595040784)、[发布工作流](https://github.com/gongpx20069/relative-ear/actions/runs/37595045600) 及公开 APK 也已完成上述发布校验，不覆盖旧标签或资产。
 
 合成测试不替代真实录音测试集。后续应使用授权音频，保留真值、片段边界和评估脚本，分别统计有效覆盖、音分误差、八度误差、音符遗漏/插入和起止时间偏差。测试素材不含私人录音，也不未经许可上传商业歌曲。

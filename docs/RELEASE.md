@@ -115,3 +115,5 @@ python scripts\github_api.py release --tag v0.0.3 --apk-dir app\build\outputs\ap
 公开仓库及固定签名 Secrets 已配置；后续推送有效 `v0.0.x` 标签会触发 Actions 发布。实际运行结果与完整 APK 资产以 Actions 和 Releases 页面为准。
 
 首次成功发布为 [v0.0.2](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.2)，由 GitHub Actions 构建并通过 REST API 发布五个 APK 和 `SHA256SUMS.txt`。公开下载的文件已完成校验与固定签名核对；`v0.0.1` 保留为失败标签，没有移动或覆盖。
+
+当前发布 [v0.0.3](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.3) 增加首调唱名练习与耳朵图标，仍使用同一签名。Actions 已成功发布全部架构与校验文件，公开下载的五个 APK 已核对 SHA-256、实际 ABI、版本与固定证书；运行证据见 [TESTING](TESTING.md)。

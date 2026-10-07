@@ -42,6 +42,15 @@ git push -u origin main
 
 Base64 是编码，不是加密，同样属于秘密。将其复制到 GitHub Secrets 后清除临时文本；不要写入公开仓库。`GITHUB_TOKEN` 由 Actions 自动提供，不需要保存个人 token。
 
+首次发布已经创建固定的 3072 位 RSA 签名密钥，并配置上述四项 Secrets。本机材料位于 `%LOCALAPPDATA%\RelativeEar\signing`：
+
+- `relative-ear-release.jks`：正式密钥，后续发布必须复用，不能覆盖或重新生成。
+- `release-signing.credential.xml`：通过 Windows DPAPI 保护的密码及密钥别名，只能由对应 Windows 用户在原环境恢复。
+
+目录 ACL 限制为当前用户访问。密钥及密码未进入仓库；配置 Secrets 使用标准输入传输并由 GitHub CLI 通过 REST API 加密上传，没有将秘密作为命令行参数。
+
+**管理员必须离线备份 keystore，并将密码另存到安全密码库。** DPAPI 文件不是可跨机器恢复的密码备份，GitHub Secrets 也不能回读明文。更换设备前需完成备份，不要把签名目录推送到 GitHub。
+
 ## 3. 版本与触发
 
 `version.properties` 是唯一版本来源：
@@ -103,4 +112,4 @@ python scripts\github_api.py release --tag v0.0.1 --apk-dir app\build\outputs\ap
 
 本地未配置签名时 `assembleRelease` 可以生成 unsigned APK，不能安装或发布为正式包。对正式 release 构建设置 `RELEASE_KEYSTORE`、`RELEASE_STORE_PASSWORD`、`RELEASE_KEY_ALIAS`、`RELEASE_KEY_PASSWORD`，与 Actions 使用相同配置。
 
-工作流和 REST 发布逻辑已实现；首次上线还需要固定签名 Secrets 和首轮 Actions 执行。实际发布状态以 Releases 页面为准。
+公开仓库及固定签名 Secrets 已配置；后续推送有效 `v0.0.x` 标签会触发 Actions 发布。实际运行结果与完整 APK 资产以 Actions 和 Releases 页面为准。

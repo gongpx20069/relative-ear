@@ -15,6 +15,7 @@ Thumbs.db
 *.jks
 *.keystore
 keystore.properties
+*.credential.xml
 
 # Local recordings
 recordings/

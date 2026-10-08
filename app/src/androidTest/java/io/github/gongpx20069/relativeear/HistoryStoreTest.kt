@@ -4,10 +4,31 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.gongpx20069.relativeear.core.AnswerNotation
 import io.github.gongpx20069.relativeear.core.TrainingSetup
+import io.github.gongpx20069.relativeear.core.ToneVoice
 import org.junit.Assert.*
 import org.junit.Test
 
 class HistoryStoreTest {
+    @Test fun pianoVoicePersistsIndependentlyOfTrainingSettingsAndScores() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val original = HistoryStore(context).use { it.pianoVoice() }
+        try {
+            val settings = HistoryStore(context).use { it.settings() }
+            val training = HistoryStore(context).use { it.training() }
+            val count = HistoryStore(context).use { it.history().total }
+            for (voice in ToneVoice.entries) {
+                HistoryStore(context).use { it.savePianoVoice(voice) }
+                HistoryStore(context).use {
+                    assertEquals(voice, it.pianoVoice())
+                    assertEquals(settings, it.settings())
+                    assertEquals(training, it.training())
+                    assertEquals(count, it.history().total)
+                }
+            }
+        } finally {
+            HistoryStore(context).use { it.savePianoVoice(original) }
+        }
+    }
     @Test fun preservesCustomTrainingAndExplicitOctavePreferences() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val store = HistoryStore(context)

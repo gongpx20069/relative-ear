@@ -17,6 +17,7 @@ import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import io.github.gongpx20069.relativeear.core.ToneSynthesis
+import io.github.gongpx20069.relativeear.core.ToneVoice
 import io.github.gongpx20069.relativeear.core.MelodyClip
 import io.github.gongpx20069.relativeear.core.PitchDetector
 import io.github.gongpx20069.relativeear.core.PitchFrame
@@ -33,7 +34,7 @@ class AudioFailure(message: String, cause: Throwable? = null) : Exception(messag
 
 interface AudioSession {
     suspend fun play(chords: List<List<Int>>, a4: Double, soundMs: Int = 450, gapMs: Long = 100,
-        onChord: (Int) -> Unit = {})
+        voice: ToneVoice = ToneVoice.PURE, onChord: (Int) -> Unit = {})
     suspend fun playMelody(clip: MelodyClip, onPosition: (Long) -> Unit)
     suspend fun capture(limitMs: Long? = null, onFrame: (PitchFrame) -> Boolean)
 }
@@ -57,10 +58,10 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
 
     override suspend fun play(
         chords: List<List<Int>>, a4: Double, soundMs: Int, gapMs: Long,
-        onChord: (Int) -> Unit,
+        voice: ToneVoice, onChord: (Int) -> Unit,
     ) = withContext(Dispatchers.IO) {
         require(soundMs > 0 && gapMs >= 0 && chords.isNotEmpty() && chords.all { it.isNotEmpty() })
-        val samples = ToneSynthesis.render(chords, a4, soundMs, gapMs)
+        val samples = ToneSynthesis.render(chords, a4, soundMs, gapMs, voice)
         val slot = ToneSynthesis.samplesPerTone(soundMs, gapMs)
         var announced = -1
         playSamples(samples) { head ->

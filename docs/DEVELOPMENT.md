@@ -4,7 +4,7 @@
 
 ## 当前实现
 
-应用版本 `0.0.8`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用界面仍为中文。
+应用版本 `0.0.9`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用界面仍为中文。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
 - 快速记忆：独立钢琴页提供横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽）和快速切换单音试听；展开为沉浸式横屏，退出按钮/系统返回恢复原方向设置。其他页不嵌入钢琴。训练保留实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
@@ -83,6 +83,8 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 所有播放共用 AudioEngine 的焦点、路由、排队、实际播放头观察与取消清理。REPLAYING 与 LISTENING 互斥；播放器位置是已输出样本数，不用独立动画计时器猜进度。停止/后台/切页先 cancelAndJoin，观察器取消完成后才释放 AudioTrack。钢琴试听可替换上一枚试听，但不能中断题目、回唱或示范；不写入历史。`AudioSession` 接口允许测试注入合成 PitchFrame，生产仍使用真实 AudioRecord/AudioTrack。
 
 钢琴试听仅允许在 PIANO 页面。`pianoExpanded` 保存在 ViewModel，MainActivity 在 STARTED 生命周期同步系统栏与 SENSOR_LANDSCAPE；原 requestedOrientation 随实例状态保留，退出时恢复。全屏不渲染 AppShell，支持退出按钮和系统返回；配置变化或后台仍停止音频，不自动恢复试听。
+
+快速试听取消上一任务，但用跨任务 Mutex 串行保护完整音频操作及资源清理，不能只 join 紧邻的取消任务：第二个任务可能在等待第一个清理时被第三个取消。被取消的等待者不播放；已取消任务的设备错误不覆盖新请求状态，当前任务的真实错误仍记录并提示。`ToneVoice` 提供钢琴、笛子和纯音；仅钢琴页向 AudioSession 传选定音色，训练/回放默认纯音保持不变。钢琴采用衰减泛音，笛子使用柔和起音与较弱泛音，均为本地合成而非采样。独立 `pianoVoice` preference 保存选择，不改 SQLite schema 或训练设置；保存失败明确提示，选择应用于后续按键。
 
 - 采样率 16 kHz，分析窗 2048 样本（128 ms），步长通常 512 样本（32 ms）。
 - 初始 RMS 门限 0.008，YIN 阈值 0.15，有效置信度至少 0.85。

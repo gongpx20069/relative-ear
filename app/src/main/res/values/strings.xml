@@ -49,6 +49,10 @@
     <string name="piano_fullscreen_label">八键小钢琴 · C4–C5</string>
     <string name="piano_interrupted">钢琴试听已停止，点击琴键可以继续。</string>
     <string name="piano_key">试听 %1$s，%2$s</string>
+    <string name="piano_voice">音色</string>
+    <string name="voice_piano">钢琴音色</string>
+    <string name="voice_flute">笛子音色</string>
+    <string name="voice_pure">纯音</string>
     <string name="melody_title">音符白板与回放</string>
     <string name="melody_hint">停止监听后，用合成音重放最近 60 秒内的识别结果，保留各音时长和停顿。红线随实际播放从左向右移动；不是原声录音，不保证复杂音乐识别准确。</string>
     <string name="melody_recent_window">持续监听不受限制；白板与回放仅保留最近 60 秒。</string>

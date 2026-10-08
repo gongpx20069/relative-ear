@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.gongpx20069.relativeear.core.FixedTraining
 import io.github.gongpx20069.relativeear.core.Music
+import io.github.gongpx20069.relativeear.core.ToneVoice
 
 @Composable
 internal fun PianoKeyboard(enabled: Boolean, activeNote: Int?, onNote: (Int) -> Unit) {
@@ -46,7 +48,7 @@ internal fun PianoKeyboard(enabled: Boolean, activeNote: Int?, onNote: (Int) -> 
 }
 
 @Composable
-internal fun PianoPage(state: UiState, onNote: (Int) -> Unit, onExpand: () -> Unit) {
+internal fun PianoPage(state: UiState, onNote: (Int) -> Unit, onVoice: (ToneVoice) -> Unit, onExpand: () -> Unit) {
     if (state.pianoExpanded) {
         Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .displayCutoutPadding().padding(12.dp).testTag("piano-fullscreen"),
@@ -57,14 +59,30 @@ internal fun PianoPage(state: UiState, onNote: (Int) -> Unit, onExpand: () -> Un
                     modifier = Modifier.weight(1f))
                 OutlinedButton(onClick = onExpand) { Text(stringResource(R.string.piano_collapse)) }
             }
+            PianoVoices(state, onVoice)
             state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             PianoKeys(state.canPreview, state.demoNote, onNote, Modifier.fillMaxWidth().weight(1f))
         }
     } else {
         Text(stringResource(R.string.piano_intro), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        PianoVoices(state, onVoice)
         PianoKeyboard(state.canPreview, state.demoNote, onNote)
         OutlinedButton(onClick = onExpand, enabled = state.loaded, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.piano_expand))
+        }
+    }
+}
+
+@Composable
+private fun PianoVoices(state: UiState, onVoice: (ToneVoice) -> Unit) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.piano_voice))
+        for ((voice, label) in listOf(ToneVoice.PIANO to R.string.voice_piano,
+            ToneVoice.FLUTE to R.string.voice_flute, ToneVoice.PURE to R.string.voice_pure)) {
+            FilterChip(selected = state.pianoVoice == voice, onClick = { onVoice(voice) },
+                enabled = state.canPreview && !state.pianoVoiceSaving,
+                label = { Text(stringResource(label)) }, modifier = Modifier.testTag("voice-${voice.name}"))
         }
     }
 }

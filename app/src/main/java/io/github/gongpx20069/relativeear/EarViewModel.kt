@@ -19,14 +19,19 @@ import io.github.gongpx20069.relativeear.core.SingingResult
 import io.github.gongpx20069.relativeear.core.SingingScorer
 import io.github.gongpx20069.relativeear.core.AppUpdate
 import io.github.gongpx20069.relativeear.core.MelodyClip
+import io.github.gongpx20069.relativeear.core.ToneVoice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
@@ -45,6 +50,8 @@ data class UiState(
     val demoNote: Int? = null,
     val pianoNote: Int? = null,
     val pianoExpanded: Boolean = false,
+    val pianoVoice: ToneVoice = ToneVoice.PIANO,
+    val pianoVoiceSaving: Boolean = false,
     val question: NoteQuestion? = null,
     val count: Int = 0,
     val correct: Int = 0,
@@ -82,6 +89,7 @@ class EarViewModel @JvmOverloads constructor(
     val state = mutable.asStateFlow()
     private val audio: AudioSession = audioOverride ?: AudioEngine(application) { interrupt() }
     private var audioJob: Job? = null
+    private val audioMutex = Mutex()
     private var answerSince = 0L
     private var session = UUID.randomUUID().toString()
     private var referenceReturnPhase = Phase.IDLE
@@ -94,8 +102,10 @@ class EarViewModel @JvmOverloads constructor(
             storage {
                 val settings = store.settings()
                 val training = store.training()
+                val pianoVoice = store.pianoVoice()
                 val history = store.history()
-                mutable.update { it.copy(settings = settings, training = training, history = history, loaded = true) }
+                mutable.update { it.copy(settings = settings, training = training, pianoVoice = pianoVoice,
+                    history = history, loaded = true) }
             }
         }
     }
@@ -130,6 +140,18 @@ class EarViewModel @JvmOverloads constructor(
     fun expandPiano(expanded: Boolean) {
         if (state.value.screen != Screen.PIANO || !state.value.loaded) return
         mutable.update { it.copy(pianoExpanded = expanded) }
+    }
+    fun pianoVoice(voice: ToneVoice) {
+        val snapshot = state.value
+        if (!snapshot.canPreview || snapshot.pianoVoiceSaving || snapshot.pianoVoice == voice) return
+        mutable.update { it.copy(pianoVoiceSaving = true) }
+        viewModelScope.launch {
+            val saved = storage { store.savePianoVoice(voice) }
+            mutable.update {
+                if (saved) it.copy(pianoVoice = voice, pianoVoiceSaving = false)
+                else it.copy(pianoVoiceSaving = false)
+            }
+        }
     }
     fun configure(training: TrainingSetup) {
         val snapshot = state.value
@@ -202,20 +224,19 @@ class EarViewModel @JvmOverloads constructor(
         if (!snapshot.canPreview) return
         require(note in FixedTraining.notes)
         if (snapshot.phase != Phase.DEMONSTRATING) referenceReturnPhase = snapshot.phase
-        val previous = audioJob
-        previous?.cancel()
+        audioJob?.cancel()
         mutable.update { it.copy(phase = Phase.DEMONSTRATING, demoNote = note, pianoNote = note, message = null) }
         launchAudio {
-            previous?.join()
-            playNotes(listOf(note), snapshot)
+            playNotes(listOf(note), snapshot, voice = snapshot.pianoVoice)
             mutable.update { it.copy(phase = referenceReturnPhase, demoNote = null, pianoNote = null) }
         }
     }
 
-    private suspend fun playNotes(notes: List<Int>, snapshot: UiState, onNote: (Int) -> Unit = {}) {
+    private suspend fun playNotes(notes: List<Int>, snapshot: UiState, voice: ToneVoice = ToneVoice.PURE,
+        onNote: (Int) -> Unit = {}) {
         val timing = snapshot.training.timing
         audio.play(notes.map { listOf(it) }, snapshot.settings.a4.toDouble(),
-            timing.soundMs, timing.gapMs, onNote)
+            timing.soundMs, timing.gapMs, voice, onNote)
     }
     private fun noteName(note: Int, notation: AnswerNotation): String {
         val degree = checkNotNull(FixedTraining.degree(note))
@@ -226,16 +247,22 @@ class EarViewModel @JvmOverloads constructor(
 
     private fun launchAudio(action: suspend () -> Unit) {
         audioJob = viewModelScope.launch {
-            try {
-                action()
-            } catch (error: AudioFailure) {
-                Log.e("RelativeEar", "Audio operation failed", error)
-                mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null, demoNote = null, pianoNote = null,
-                    message = text(R.string.audio_error, error.message ?: "unknown")) }
-            } catch (error: SecurityException) {
-                Log.w("RelativeEar", "Microphone access denied", error)
-                mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE,
-                    frame = null, demoNote = null, pianoNote = null, message = text(R.string.permission_denied)) }
+            // A cancelled intermediate preview must not bypass an older player's resource cleanup.
+            audioMutex.withLock {
+                currentCoroutineContext().ensureActive()
+                try {
+                    action()
+                } catch (error: AudioFailure) {
+                    currentCoroutineContext().ensureActive()
+                    Log.e("RelativeEar", "Audio operation failed", error)
+                    mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null, demoNote = null, pianoNote = null,
+                        message = text(R.string.audio_error, error.message ?: "unknown")) }
+                } catch (error: SecurityException) {
+                    currentCoroutineContext().ensureActive()
+                    Log.w("RelativeEar", "Microphone access denied", error)
+                    mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE,
+                        frame = null, demoNote = null, pianoNote = null, message = text(R.string.permission_denied)) }
+                }
             }
         }
     }

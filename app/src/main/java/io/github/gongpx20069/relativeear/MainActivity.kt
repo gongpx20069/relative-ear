@@ -135,7 +135,7 @@ private fun EarApp(model: EarViewModel) {
     val context = LocalContext.current
     BackHandler(enabled = state.screen == Screen.PIANO && state.pianoExpanded) { model.expandPiano(false) }
     if (state.screen == Screen.PIANO && state.pianoExpanded) {
-        PianoPage(state, model::previewNote) { model.expandPiano(false) }
+        PianoPage(state, model::previewNote, model::pianoVoice) { model.expandPiano(false) }
         return
     }
     var pendingScreen by remember { mutableStateOf<Screen?>(null) }
@@ -162,7 +162,7 @@ private fun EarApp(model: EarViewModel) {
                 model::replay, model::playReference, model::answer, model::interrupt)
             Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening,
                 model::replayDetected, model::stopReplay)
-            Screen.PIANO -> PianoPage(state, model::previewNote) { model.expandPiano(true) }
+            Screen.PIANO -> PianoPage(state, model::previewNote, model::pianoVoice) { model.expandPiano(true) }
             Screen.HISTORY -> HistoryPage(state, model::openPractice, model::closePractice)
             Screen.SETTINGS -> SettingsPage(state, model)
         }

@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import io.github.gongpx20069.relativeear.core.AnswerNotation
 import io.github.gongpx20069.relativeear.core.TrainingSetup
+import io.github.gongpx20069.relativeear.core.ToneVoice
 import java.io.IOException
 
 data class Settings(val a4: Int = 440, val tolerance: Int = 35, val ignoreOctave: Boolean = false)
@@ -76,6 +77,16 @@ class HistoryStore(context: Context, databaseName: String = "training.db") :
         preferences.getString("answerNotation", AnswerNotation.SOLFEGE.name),
         preferences.getInt("trainingBpm", 80),
     )
+    fun pianoVoice(): ToneVoice = try {
+        ToneVoice.valueOf(requireNotNull(preferences.getString("pianoVoice", ToneVoice.PIANO.name)))
+    } catch (error: IllegalArgumentException) {
+        throw IOException("Invalid saved piano voice", error)
+    }
+    fun savePianoVoice(voice: ToneVoice) {
+        if (!preferences.edit().putString("pianoVoice", voice.name).commit()) {
+            throw IOException("Piano voice write failed")
+        }
+    }
     private fun decodeTraining(notes: String?, notation: String?, bpm: Int): TrainingSetup = try {
         TrainingSetup(requireNotNull(notes).split(",").map(String::toInt),
             AnswerNotation.valueOf(requireNotNull(notation)), bpm)

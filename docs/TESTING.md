@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.8
+python scripts\github_api.py validate-version --tag v0.0.9
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -48,6 +48,10 @@ CI 的独立 `ui` 任务在 API 29 模拟器通过 adb 安装两个 APK，并用
 `MelodyClipTest` 对实际 PCM 校验不同音长、首尾/音间静音、音高/升降音/八度和 A4 调音、60 秒交集裁剪与 1.92 MB 上限，以及非法重叠/越界时间线拒绝。`PlaybackStateTest` 验证答题/监听期间钢琴不可试听、只有已停止且存在音符的识音页能回放。`PianoPlaybackTest` 在实际 MainActivity 验证八键及不计成绩；监听输入使用合成 PitchFrame fixture，输出使用真实 AudioTrack，校验 2.56 秒片段的实际播放头、红线进度、单调位置、停止/中断/切页及麦克风互斥。不据此宣称物理麦克风准确率已验证。
 
 `PianoPlaybackTest` 另验证三个练习/识音页均没有钢琴，试听仅在独立钢琴页可用。`PianoFullscreenTest` 在真实 MainActivity 检查横屏全屏八键均可见、应用导航隐藏，并分别用退出按钮与系统返回验证方向和导航恢复，导出 `piano-fullscreen.png`。运行环境固定为 Ubuntu 24.04，模拟器 action 固定到已核实的提交。历史失败不会删除：SDK 下载错误、旧 JUnit 方法边界错误以及旧截图重复执行中的短片段停止断言，均需区分实际根因；新的单次流程不能用跳过断言来改绿。
+
+`0.0.9` 的 ToneSynthesisTest 验证三种音色波形不同、钢琴衰减、C4–C5 在 A4=415/440/466 Hz 下的实际 PCM 音高误差不超过 10 cents、槽长/静音及无削波，默认纯音不变。HistoryStoreTest 验证音色重开后保留且不改变训练/成绩。PianoFullscreenTest 在全屏切换三种音色、退出/重新展开后保留选择。PianoRapidPlaybackTest 使用真实 AudioTrack 并延迟第一音的资源清理，构造第二音等待中又被后续连续 33 次按键取消的竞态，断言没有并发播放器/错误、仅第一音及最后请求音实际播放，且选定笛子音色传到播放层、不计成绩。这不代替真机听感和厂商音频焦点兼容验收。
+
+另注入当前播放设备故障，确认仍显示真实音频错误、退出播放阶段并清除琴键高亮；不是简单隐藏所有报错。
 
 ## 真机检查清单
 

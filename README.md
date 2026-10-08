@@ -8,13 +8,13 @@
 
 Android **8.0+**. The app UI is currently **Simplified Chinese**; Chinese button names are included below. No account is required. Practice and audio processing work offline.
 
-> **0.0.8 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
+> **0.0.9 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
 ## Install
 
 Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
 
-**0.0.8:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.8/relative-ear-0.0.8-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.8/relative-ear-0.0.8-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.8)
+**0.0.9:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.9)
 
 | APK suffix | Choose it for |
 |---|---|
@@ -54,6 +54,10 @@ Playback uses eighth-note slots at **60 / 80 / 100 / 120 BPM**. At 80 BPM, each 
 2. Tap a key to hear a short synthesized note. Quickly tapping another key switches the preview. On narrow screens, scroll the keyboard horizontally.
 3. Tap **Expand fullscreen (展开全屏)** for a landscape keyboard without the app navigation or system bars.
 4. Tap **Exit fullscreen (退出全屏)** or use Android Back to return to the piano page and restore the previous orientation setting.
+
+Use **音色** to choose **Piano (钢琴音色)**, **Flute (笛子音色)**, or **Pure tone (纯音)** in either layout. Your choice is saved and applies to the next key press, not the note already playing. Piano uses decaying harmonics; flute has a softer attack and a sustained tone. These are offline synthesized approximations, not recorded instrument samples. Ear-training demonstrations and detected-note replay keep their existing pure tone.
+
+Rapid taps replace the current note, not queue every intermediate key. Playback waits for the previous player's resources to be released, so overlapping taps are not themselves an audio error. Genuine device or audio-focus failures are still reported.
 
 The piano is **not embedded in ear training, singing, or detection pages**. It does not need the microphone, change the assessment range, or save a practice attempt. Rotation or backgrounding may stop the current preview; tap a key to play again. It is a note-learning keyboard, not a sustained-note or multitouch chord instrument.
 

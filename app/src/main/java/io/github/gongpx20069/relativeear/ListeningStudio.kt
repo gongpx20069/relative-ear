@@ -33,7 +33,7 @@ import io.github.gongpx20069.relativeear.core.Music
 @Composable
 internal fun ListeningPage(
     state: UiState, onStart: () -> Unit, onStop: () -> Unit, onReplay: () -> Unit,
-    onStopReplay: () -> Unit, onPiano: (Int) -> Unit,
+    onStopReplay: () -> Unit,
 ) {
     Text(stringResource(R.string.listen_intro), color = MaterialTheme.colorScheme.onSurfaceVariant)
     PitchReadout(state, includeCurve = false)
@@ -68,10 +68,6 @@ internal fun ListeningPage(
             Text(stringResource(R.string.melody_empty), style = MaterialTheme.typography.bodySmall)
         }
     }
-    val liveNote = state.frame?.takeIf { it.confidence >= 0.85 }?.frequency?.let {
-        Music.nearest(it, state.settings.a4.toDouble())
-    }
-    PianoKeyboard(state.canPreview, state.demoNote ?: liveNote, onPiano)
     SectionCard(stringResource(R.string.notes_title)) {
         if (state.notes.isEmpty()) Text(stringResource(R.string.no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
         state.notes.takeLast(30).asReversed().forEach {

@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -31,10 +31,14 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
   ui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare UI diagnostics
+        run: |
+          mkdir -p app/build
+          printf 'Run: %s\nCommit: %s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > app/build/ui-environment.log
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -52,7 +56,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Exercise training UI and database upgrades
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           # Reuse the compilation platform; the emulator runtime remains Android 10.
           api-level: 35
@@ -62,20 +66,20 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 1536
           disable-animations: true
           script: |
-            bash gradlew :app:connectedDebugAndroidTest --no-daemon --console plain
-            # Gradle uninstalls apps after connected tests; an adb-owned capture session retains the images.
+            bash gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console plain
             adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -e class io.github.gongpx20069.relativeear.TrainingUiTest,io.github.gongpx20069.relativeear.HistoryUiTest,io.github.gongpx20069.relativeear.PianoPlaybackTest io.github.gongpx20069.relativeear.test/androidx.test.runner.AndroidJUnitRunner | tee app/build/ui-capture.log
-            grep -Eq '^OK \([1-9][0-9]* tests?\)' app/build/ui-capture.log
+            # Run the complete suite once; keep the app installed until output collection finishes.
+            adb shell am instrument -w -e listener io.github.gongpx20069.relativeear.UiReportListener io.github.gongpx20069.relativeear.test/androidx.test.runner.AndroidJUnitRunner | tee app/build/ui-capture.log
             mkdir -p app/build/ui-snapshots
             adb pull /sdcard/Android/data/io.github.gongpx20069.relativeear/files/ui-snapshots/. app/build/ui-snapshots/
+            python scripts/validate_instrumentation.py --report app/build/ui-snapshots/instrumentation-results.xml --log app/build/ui-capture.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ui-snapshots
           path: |
-            app/build/ui-snapshots/*.png
-            app/build/reports/androidTests/connected/
+            app/build/ui-snapshots/
             app/build/ui-capture.log
+            app/build/ui-environment.log
           if-no-files-found: error

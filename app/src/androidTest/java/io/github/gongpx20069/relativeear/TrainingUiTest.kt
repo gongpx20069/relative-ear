@@ -46,7 +46,7 @@ class TrainingUiTest {
             compose.onAllNodes(hasText("开始练习") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("开始练习").assertIsEnabled().assertIsDisplayed()
-        compose.onNodeWithText("八键小钢琴").assertExists()
+        compose.onNodeWithText("八键小钢琴").assertDoesNotExist()
         compose.onNodeWithContentDescription("装饰性八分音符，答题前不显示真实音高").assertExists()
         screenshot("studio-home.png")
     }

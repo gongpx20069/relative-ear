@@ -56,24 +56,24 @@ Base64 是编码，不是加密，同样属于秘密。将其复制到 GitHub Se
 `version.properties` 是唯一版本来源：
 
 ```properties
-versionName=0.0.7
-versionCode=7
+versionName=0.0.8
+versionCode=8
 ```
 
-下次发布改为 `0.0.8` / `8`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
+下次发布改为 `0.0.9` / `9`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
 
 先将代码提交推送到 main，再推送相同版本标签：
 
 ```powershell
-git tag v0.0.7
-git push origin v0.0.7
+git tag v0.0.8
+git push origin v0.0.8
 ```
 
 标签必须指向已进入 main 的提交，并与工程版本一致。工作流只响应 `v0.0.*`，Python 校验进一步拒绝前导零和不匹配的版本。
 
 ## 4. CI 与发布行为
 
-- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域与 App JVM 测试、lint、debug APK 与仪器测试 APK 编译；独立 API 29 模拟器任务执行数据库/迁移与 Compose UI 测试并上传真实截图。不创建 Release。
+- `ci.yml`：main 推送和 PR 触发，运行 Python 测试、领域与 App JVM 测试、lint、debug APK 与仪器测试 APK 编译；独立 API 29 模拟器任务一次执行完整数据库/迁移与 Compose UI 测试，收集同次真实截图、JUnit XML 和日志，严格核对用例数量及失败/跳过，不重复运行截图测试。不创建 Release。
 - `release.yml`：版本标签触发，校验版本与 main 祖先关系，读取 Secrets，执行测试/lint，构建同一签名的四种 ABI release APK 和通用 APK。
 - 读取 AGP 的 `output-metadata.json`，要求五个架构完整、版本一致、属于 release，拒绝遗漏、重复、空文件和残留 APK。
 - 使用 `apksigner` 校验签名、`aapt` 校验应用 ID/版本/minSdk，并拒绝 debuggable APK；同时检查包内原生库 ABI 和五个 APK 的签名证书一致性。
@@ -91,13 +91,13 @@ git push origin v0.0.7
 | `relative-ear-0.0.x-universal.apk` | 包含上述全部原生库 |
 | `SHA256SUMS.txt` | 五个 APK 的 SHA-256 值和对应资产名 |
 
-所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.7` / `7`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
+所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.8` / `8`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
 
 本地正式构建后，先验证全部 APK，再通过 REST 发布已存在的标签：
 
 ```powershell
 python scripts\verify_apk.py --apk-dir app\build\outputs\apk\release --tools "$env:ANDROID_HOME\build-tools\35.0.0"
-python scripts\github_api.py release --tag v0.0.7 --apk-dir app\build\outputs\apk\release
+python scripts\github_api.py release --tag v0.0.8 --apk-dir app\build\outputs\apk\release
 ```
 
 正常发布仍优先使用 GitHub Actions。切换到 ABI splits 后，本地第一次构建应先执行 `.\gradlew.bat :app:clean :app:assembleRelease`，防止旧版单包输出残留；新 Actions runner 不依赖旧输出。
@@ -125,3 +125,5 @@ python scripts\github_api.py release --tag v0.0.7 --apk-dir app\build\outputs\ap
 `0.0.6` 将记录改为按练习汇总的卡片，点击查看完整逐音详情，保留部分练习和旧会话。发布前先确认 main 的 build 与实际 UI 检查均通过，再推送 `v0.0.6` 标签；仍使用固定签名和全部五种架构资产，不覆盖旧版本。
 
 `0.0.7` 增加横向 C4–C5 八白键钢琴、最近 60 秒识别音符的按时值合成回放和实际音频播放头驱动的红线。仍先确认 main 的完整 build/UI 检查通过，再推送 `v0.0.7`，复用既有签名并发布全部架构；不移动或覆盖旧标签。
+
+`0.0.8` 将钢琴移到独立页面并提供可退出的沉浸式横屏，其他页移除键盘；默认英文 README 与中文指南分开，完整仪器测试和截图改为一次运行。先确认对应 main 的 build/UI 均通过、实际全屏截图及 XML/日志一致，再推送 `v0.0.8`；复用既有签名并核对全部公开下载资产，不覆盖旧标签。

@@ -4,17 +4,17 @@
 
 ## 当前实现
 
-应用版本 `0.0.7`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.8`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用界面仍为中文。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
-- 快速记忆：横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽），快速切换单音试听、实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
+- 快速记忆：独立钢琴页提供横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽）和快速切换单音试听；展开为沉浸式横屏，退出按钮/系统返回恢复原方向设置。其他页不嵌入钢琴。训练保留实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
 - 唱唱名：按指定音符回唱，先播放 C4，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认区分八度，已有手动设置保留。
 - UI：奶白/松绿主题、圆角分区、练习主卡、真实底栏图标、进度与答题网格、音准指示条、配置快照历史；两种 Compose 预览支持初始与八音答题布局。
 - 图标：耳朵、听觉波纹与三点，adaptive icon 及 Android 13+ 单色主题图标，不再使用播放器式音符图标。
-- 识音：YIN 单音检测，音名/Hz/cents、最近 60 秒白板、音符分段、最近 30 音文本列表；停止后按实际音高/时长/停顿合成回放，AudioTrack 播放头驱动红线与钢琴高亮。
+- 识音：YIN 单音检测，音名/Hz/cents、最近 60 秒白板、音符分段、最近 30 音文本列表；停止后按实际音高/时长/停顿合成回放，AudioTrack 播放头驱动红线，不再显示钢琴。
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置；按整轮显示最近 100 次练习，点进详情才加载该练习的全部音符，支持部分练习、页面/系统返回与确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
-- GitHub Actions：测试、lint、构建；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
+- GitHub Actions：测试、lint、构建；完整仪器测试只运行一次，同次收集截图、JUnit XML 和日志并严格核对结果；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
 - 设置更新：手动查询公开 Releases（包含 prerelease），数值比较 0.0.x 版本、ABI 选包、下载提示与发布说明；不后台检查或自动安装，网络与资产异常有显式提示。
 
 尚未实现：弱项推荐、独立考试模式、C4–C5 自然音以外的训练音库、完整旋律模唱与节奏评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
@@ -60,7 +60,7 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
 | `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
 | `app` / PracticeHistory | 按练习汇总的卡片、完整逐音详情、部分练习与返回导航 |
-| `app` / PianoKeyboard、ListeningStudio | 横向八键试听、识音白板、红线进度和互斥回放控件 |
+| `app` / PianoKeyboard、ListeningStudio | 独立/全屏横向八键试听、识音白板、红线进度和互斥回放控件 |
 | `core` / AppUpdates | 数值版本比较、已发布候选、完整资产/官方地址校验与系统 ABI 优先选包 |
 | `app` / ReleaseUpdateClient、UpdateSettings | 无凭据 HTTPS 查询、分页与错误处理、设置卡片与下载提示 |
 | `app` / MainActivity、EarTheme、MusicArtwork | Compose 页面、统一主题、音符谱位与导航图标、预览、权限请求、后台中断 |
@@ -81,6 +81,8 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 音符回放以 AudioRecord 的累计样本时间为基准，裁剪到最近 60 秒；跨窗口的长音截取交集，首尾空白与音间停顿保持静音，不按题目 BPM 重新排列音符。`ToneSynthesis.render(MelodyClip)` 复用合成包络，最长分配 960,000 个 short（约 1.92 MB）；监听帧窗口最多 2,000 帧，已结束音符只保留与窗口相交的事件，文本只显示最后 30 项。持续监听不自动结束。回唱的原 10 秒曲线不变。
 
 所有播放共用 AudioEngine 的焦点、路由、排队、实际播放头观察与取消清理。REPLAYING 与 LISTENING 互斥；播放器位置是已输出样本数，不用独立动画计时器猜进度。停止/后台/切页先 cancelAndJoin，观察器取消完成后才释放 AudioTrack。钢琴试听可替换上一枚试听，但不能中断题目、回唱或示范；不写入历史。`AudioSession` 接口允许测试注入合成 PitchFrame，生产仍使用真实 AudioRecord/AudioTrack。
+
+钢琴试听仅允许在 PIANO 页面。`pianoExpanded` 保存在 ViewModel，MainActivity 在 STARTED 生命周期同步系统栏与 SENSOR_LANDSCAPE；原 requestedOrientation 随实例状态保留，退出时恢复。全屏不渲染 AppShell，支持退出按钮和系统返回；配置变化或后台仍停止音频，不自动恢复试听。
 
 - 采样率 16 kHz，分析窗 2048 样本（128 ms），步长通常 512 样本（32 ms）。
 - 初始 RMS 门限 0.008，YIN 阈值 0.15，有效置信度至少 0.85。

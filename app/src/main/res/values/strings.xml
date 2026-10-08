@@ -40,7 +40,14 @@
     <string name="choose_note">你听到的是</string>
     <string name="note_library">音符记忆台</string>
     <string name="piano_title">八键小钢琴</string>
-    <string name="piano_hint">点击白键试听 Do–Do↑（C4–C5），窄屏可左右滑动。不会改变考核范围；监听和答题时禁用试听。</string>
+    <string name="piano_hint">点击白键试听 Do–Do↑（C4–C5），窄屏可左右滑动；也可展开横屏全屏。试听不会改变考核范围或生成练习记录。</string>
+    <string name="piano_tab">钢琴</string>
+    <string name="piano_page_title">用琴键，记住声音</string>
+    <string name="piano_intro">钢琴独立于练习和识音。连续点击可切换短合成音；进入全屏后，点击退出或系统返回键回到此页。</string>
+    <string name="piano_expand">展开全屏</string>
+    <string name="piano_collapse">退出全屏</string>
+    <string name="piano_fullscreen_label">八键小钢琴 · C4–C5</string>
+    <string name="piano_interrupted">钢琴试听已停止，点击琴键可以继续。</string>
     <string name="piano_key">试听 %1$s，%2$s</string>
     <string name="melody_title">音符白板与回放</string>
     <string name="melody_hint">停止监听后，用合成音重放最近 60 秒内的识别结果，保留各音时长和停顿。红线随实际播放从左向右移动；不是原声录音，不保证复杂音乐识别准确。</string>

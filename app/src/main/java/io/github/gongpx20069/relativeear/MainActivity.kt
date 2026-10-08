@@ -3,11 +3,13 @@ package io.github.gongpx20069.relativeear
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -67,6 +69,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import io.github.gongpx20069.relativeear.core.AnswerNotation
 import io.github.gongpx20069.relativeear.core.FixedTraining
 import io.github.gongpx20069.relativeear.core.Music
@@ -75,13 +86,42 @@ import io.github.gongpx20069.relativeear.core.TrainingSetup
 
 class MainActivity : ComponentActivity() {
     private val model: EarViewModel by viewModels()
+    private var pianoPreviousOrientation: Int? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState?.containsKey("pianoPreviousOrientation") == true) {
+            pianoPreviousOrientation = savedInstanceState.getInt("pianoPreviousOrientation")
+        }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
         setContent { EarTheme { EarApp(model) } }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                model.state.map { it.screen == Screen.PIANO && it.pianoExpanded }
+                    .distinctUntilChanged().collect { expanded ->
+                        val controller = WindowCompat.getInsetsController(window, window.decorView)
+                        if (expanded) {
+                            if (pianoPreviousOrientation == null) pianoPreviousOrientation = requestedOrientation
+                            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                            controller.hide(WindowInsetsCompat.Type.systemBars())
+                            if (requestedOrientation != ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE) {
+                                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                            }
+                        } else {
+                            controller.show(WindowInsetsCompat.Type.systemBars())
+                            val previous = pianoPreviousOrientation
+                            pianoPreviousOrientation = null
+                            if (previous != null && requestedOrientation != previous) requestedOrientation = previous
+                        }
+                    }
+            }
+        }
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        pianoPreviousOrientation?.let { outState.putInt("pianoPreviousOrientation", it) }
+        super.onSaveInstanceState(outState)
     }
     override fun onStop() {
         model.interrupt()
@@ -93,6 +133,11 @@ class MainActivity : ComponentActivity() {
 private fun EarApp(model: EarViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    BackHandler(enabled = state.screen == Screen.PIANO && state.pianoExpanded) { model.expandPiano(false) }
+    if (state.screen == Screen.PIANO && state.pianoExpanded) {
+        PianoPage(state, model::previewNote) { model.expandPiano(false) }
+        return
+    }
     var pendingScreen by remember { mutableStateOf<Screen?>(null) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val requested = pendingScreen
@@ -114,9 +159,10 @@ private fun EarApp(model: EarViewModel) {
         when (state.screen) {
             Screen.SING, Screen.EAR -> TrainingPage(state, model::configure,
                 if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
-                model::replay, model::playReference, model::previewNote, model::answer, model::interrupt)
+                model::replay, model::playReference, model::answer, model::interrupt)
             Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening,
-                model::replayDetected, model::stopReplay, model::previewNote)
+                model::replayDetected, model::stopReplay)
+            Screen.PIANO -> PianoPage(state, model::previewNote) { model.expandPiano(true) }
             Screen.HISTORY -> HistoryPage(state, model::openPractice, model::closePractice)
             Screen.SETTINGS -> SettingsPage(state, model)
         }
@@ -125,8 +171,10 @@ private fun EarApp(model: EarViewModel) {
 
 @Composable
 private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () -> Unit, content: @Composable () -> Unit) {
-    val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.report_tab, R.string.settings_tab)
-    val titles = listOf(R.string.ear_title, R.string.sing_title, R.string.listen_title, R.string.history_title, R.string.settings_title)
+    val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.piano_tab,
+        R.string.report_tab, R.string.settings_tab)
+    val titles = listOf(R.string.ear_title, R.string.sing_title, R.string.listen_title, R.string.piano_page_title,
+        R.string.history_title, R.string.settings_title)
     Scaffold(bottomBar = {
         NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
             Screen.entries.forEachIndexed { index, screen ->
@@ -185,7 +233,7 @@ private fun NoteLabel(note: Int, notation: AnswerNotation, large: Boolean = fals
 @Composable
 private fun TrainingPage(
     state: UiState, onConfigure: (TrainingSetup) -> Unit, onStart: () -> Unit, onReplay: () -> Unit,
-    onReference: (Boolean) -> Unit, onPreview: (Int) -> Unit, onAnswer: (Int) -> Unit, onStop: () -> Unit,
+    onReference: (Boolean) -> Unit, onAnswer: (Int) -> Unit, onStop: () -> Unit,
 ) {
     val singing = state.screen == Screen.SING
     TrainingConfiguration(state, onConfigure)
@@ -266,9 +314,6 @@ private fun TrainingPage(
         }
         Phase.SAVING -> Unit
         else -> OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.stop)) }
-    }
-    if (state.phase in listOf(Phase.IDLE, Phase.COMPLETE, Phase.DEMONSTRATING)) {
-        PianoKeyboard(state.canPreview, state.demoNote, onPreview)
     }
 }
 
@@ -458,7 +503,7 @@ private fun AnswerPreview() = TrainingPreview(UiState(loaded = true, phase = Pha
 private fun TrainingPreview(state: UiState) {
     EarTheme {
         AppShell(state, {}, {}) {
-            TrainingPage(state, {}, {}, {}, {}, {}, {}, {})
+            TrainingPage(state, {}, {}, {}, {}, {}, {})
         }
     }
 }

@@ -31,7 +31,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
 
-enum class Screen { EAR, SING, LISTEN, HISTORY, SETTINGS }
+enum class Screen { EAR, SING, LISTEN, PIANO, HISTORY, SETTINGS }
 enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, REPLAYING, SAVING, FEEDBACK, COMPLETE }
 data class UpdateState(
     val checking: Boolean = false, val checked: Boolean = false, val available: AppUpdate? = null,
@@ -44,6 +44,7 @@ data class UiState(
     val training: TrainingSetup = TrainingSetup(),
     val demoNote: Int? = null,
     val pianoNote: Int? = null,
+    val pianoExpanded: Boolean = false,
     val question: NoteQuestion? = null,
     val count: Int = 0,
     val correct: Int = 0,
@@ -65,7 +66,7 @@ data class UiState(
 ) {
     val configurable: Boolean get() = loaded && phase in listOf(Phase.IDLE, Phase.COMPLETE)
     val canHearAnswer: Boolean get() = question != null && phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)
-    val canPreview: Boolean get() = loaded && (phase in listOf(Phase.IDLE, Phase.COMPLETE) ||
+    val canPreview: Boolean get() = loaded && screen == Screen.PIANO && (phase in listOf(Phase.IDLE, Phase.COMPLETE) ||
         (phase == Phase.DEMONSTRATING && pianoNote != null))
     val listeningClip: MelodyClip? get() = if (listeningMs > 0) MelodyClip.recent(notes, listeningMs, settings.a4.toDouble()) else null
     val canReplay: Boolean get() = loaded && screen == Screen.LISTEN && phase == Phase.IDLE &&
@@ -121,10 +122,14 @@ class EarViewModel @JvmOverloads constructor(
             mutable.update {
                 it.copy(screen = screen, phase = Phase.IDLE, question = null, frame = null, result = null,
                     curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0,
-                    demoNote = null, pianoNote = null, listeningMs = 0, replayPositionMs = 0,
+                    demoNote = null, pianoNote = null, pianoExpanded = false, listeningMs = 0, replayPositionMs = 0,
                     selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false)
             }
         }
+    }
+    fun expandPiano(expanded: Boolean) {
+        if (state.value.screen != Screen.PIANO || !state.value.loaded) return
+        mutable.update { it.copy(pianoExpanded = expanded) }
     }
     fun configure(training: TrainingSetup) {
         val snapshot = state.value
@@ -147,7 +152,8 @@ class EarViewModel @JvmOverloads constructor(
             audioJob?.cancelAndJoin()
             audioJob = null
             mutable.update { it.copy(phase = if (demonstrating) referenceReturnPhase else Phase.IDLE,
-                frame = null, demoNote = null, pianoNote = null, message = text(R.string.interrupted)) }
+                frame = null, demoNote = null, pianoNote = null, message = text(
+                    if (it.screen == Screen.PIANO) R.string.piano_interrupted else R.string.interrupted)) }
         }
     }
 

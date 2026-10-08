@@ -7,9 +7,13 @@ import org.junit.Test
 class PlaybackStateTest {
     @Test fun pianoCannotProvideAnswersOrRecordItsOwnOutput() {
         for (phase in Phase.entries) {
-            assertEquals(phase in listOf(Phase.IDLE, Phase.COMPLETE), UiState(loaded = true, phase = phase).canPreview)
+            assertEquals(phase in listOf(Phase.IDLE, Phase.COMPLETE),
+                UiState(screen = Screen.PIANO, loaded = true, phase = phase).canPreview)
         }
-        assertTrue(UiState(loaded = true, phase = Phase.DEMONSTRATING, pianoNote = 60).canPreview)
+        assertTrue(UiState(screen = Screen.PIANO, loaded = true, phase = Phase.DEMONSTRATING, pianoNote = 60).canPreview)
+        Screen.entries.filter { it != Screen.PIANO }.forEach {
+            assertFalse(UiState(screen = it, loaded = true).canPreview)
+        }
         assertFalse(UiState().canPreview)
     }
     @Test fun replayRequiresRecognizedNotesAndAnIdleListeningPageWithoutMicrophoneCapture() {

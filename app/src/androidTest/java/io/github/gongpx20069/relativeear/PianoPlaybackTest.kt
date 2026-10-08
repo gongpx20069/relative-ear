@@ -40,6 +40,11 @@ class PianoPlaybackTest {
         val context = compose.activity.applicationContext
         val before = HistoryStore(context).use { it.history().total }
         val permission = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+        for (tab in listOf("练耳", "唱唱名", "识音")) {
+            compose.onNodeWithText(tab).performClick()
+            compose.onNodeWithText("八键小钢琴").assertDoesNotExist()
+        }
+        compose.onNodeWithText("钢琴").performClick()
         compose.onNodeWithText("八键小钢琴").performScrollTo()
         for (note in listOf(60, 62, 64, 65, 67, 69, 71, 72)) compose.onNodeWithTag("piano-$note").assertExists()
         compose.onNodeWithTag("piano-72").performScrollTo().performClick()
@@ -77,7 +82,7 @@ class PianoPlaybackTest {
                 EarTheme {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         ListeningPage(state, model::listen, model::stopListening,
-                            model::replayDetected, model::stopReplay, model::previewNote)
+                            model::replayDetected, model::stopReplay)
                     }
                 }
             }
@@ -96,7 +101,7 @@ class PianoPlaybackTest {
         val since = SystemClock.elapsedRealtime()
         compose.onNodeWithText("回放识别音符").performScrollTo().performClick()
         compose.waitUntil(10_000) { model.state.value.replayPositionMs >= 300 }
-        compose.onNodeWithTag("piano-60").assertIsNotEnabled()
+        compose.onNodeWithTag("piano-60").assertDoesNotExist()
         compose.waitUntil(10_000) { model.state.value.phase == Phase.IDLE }
         val elapsed = SystemClock.elapsedRealtime() - since
         assertTrue("Playback ended too early: $elapsed", elapsed >= 2400)
@@ -116,7 +121,7 @@ class PianoPlaybackTest {
         val model = studio(audio)
         compose.onNodeWithText("开始监听").performScrollTo().performClick()
         compose.waitUntil(10_000) { model.state.value.phase == Phase.LISTENING }
-        compose.onNodeWithTag("piano-60").assertIsNotEnabled()
+        compose.onNodeWithTag("piano-60").assertDoesNotExist()
         compose.onNodeWithText("回放识别音符").assertIsNotEnabled()
         gate.complete(Unit)
         compose.waitUntil(10_000) { model.state.value.canReplay }

@@ -50,6 +50,11 @@ fun NavigationArtwork(screen: Screen) {
                 Screen.LISTEN -> listOf(5f, 2f, 7f, 4f, 6f).forEachIndexed { i, extent ->
                     line(4f + i * 4, 12f - extent, 4f + i * 4, 12f + extent)
                 }
+                Screen.PIANO -> {
+                    drawRect(color, Offset(2f, 4f), Size(20f, 16f), style = Stroke(1.8f))
+                    for (i in 1..3) line(2f + i * 5, 4f, 2f + i * 5, 20f)
+                    for (x in listOf(6f, 11f, 16f)) drawRect(color, Offset(x, 4f), Size(2f, 8f))
+                }
                 Screen.HISTORY -> {
                     line(4f, 21f, 21f, 21f); line(4f, 21f, 4f, 4f)
                     line(8f, 17f, 8f, 12f); line(13f, 17f, 13f, 7f); line(18f, 17f, 18f, 3f)

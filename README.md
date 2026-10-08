@@ -1,113 +1,113 @@
 # Relative Ear
 
-**听出 Do / Re / Mi，唱准旋律。** 一个面向音乐爱好者的 Android 练习工具：听唱名、唱唱名，以及实时识别人声或乐器的单音旋律。不需要先学“大三度、小二度”等音程术语。
+**English** | [简体中文](README.zh-CN.md)
 
-Android **8.0 及以上**，中文界面，无账号，训练与识音可离线使用。声音只在手机本地处理，不保存录音、不上传音频；手动检查更新时需要联网。
+[![Android checks](https://github.com/gongpx20069/relative-ear/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gongpx20069/relative-ear/actions/workflows/ci.yml)
 
-> 当前为 `0.0.7` 早期版本。已实现下述基础功能，但尚未完成真机音准、延迟和机型兼容验证。正式安装包由 GitHub Actions 构建并发布到 Releases，以页面实际可下载资产为准。
+**Hear Do / Re / Mi, and sing in tune.** An Android app for music enthusiasts with fixed-note ear training, singing practice, live single-note detection, and a standalone mini piano. No interval-theory vocabulary is needed to get started.
 
-## 安装
+Android **8.0+**. The app UI is currently **Simplified Chinese**; Chinese button names are included below. No account is required. Practice and audio processing work offline.
 
-发布后，从 [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases) 下载适合手机架构的 APK，不要下载源码压缩包。所有安装包都使用 `0.0.x` 版本号。
+> **0.0.8 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
-| 安装包 | 适用设备 |
+## Install
+
+Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
+
+**0.0.8:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.8/relative-ear-0.0.8-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.8/relative-ear-0.0.8-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.8)
+
+| APK suffix | Choose it for |
 |---|---|
-| `relative-ear-0.0.x-arm64-v8a.apk` | 大多数现代 Android 手机，64 位 ARM 系统 |
-| `relative-ear-0.0.x-armeabi-v7a.apk` | 较老的手机或 32 位 ARM 系统 |
-| `relative-ear-0.0.x-x86_64.apk` | 64 位 Intel 设备或对应 Android 模拟器 |
-| `relative-ear-0.0.x-x86.apk` | 32 位 Intel 设备或对应 Android 模拟器 |
-| `relative-ear-0.0.x-universal.apk` | 不确定架构时选这个；包含全部架构，体积稍大 |
+| `arm64-v8a` | Most modern phones running 64-bit Android |
+| `armeabi-v7a` | Older phones or 32-bit Android |
+| `x86_64` | 64-bit Intel devices or matching emulators |
+| `x86` | 32-bit Intel devices or matching emulators |
+| `universal` | Unsure of your device architecture; includes all supported ABIs |
 
-每个 APK 都是完整安装包，只需下载其中一个，不需要把多个架构包一起安装。以手机系统支持的架构为准，不能只看 CPU 是否为 64 位。Release 的 `SHA256SUMS.txt` 提供五个 APK 的文件校验值。
+Each APK is independently installable: download **one**, not every architecture. Choose the architecture supported by your Android OS, not just the CPU. `SHA256SUMS.txt` contains checksums for all five APKs.
 
-当前 `0.0.7`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.7/relative-ear-0.0.7-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.7/relative-ear-0.0.7-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.7)。
+1. Download the APK to your phone and open it.
+2. If prompted, allow your browser or file manager to install unknown apps.
+3. Open Relative Ear. It starts on **Ear training (练耳)**. Only singing and live detection request microphone permission.
 
-1. 将 APK 下载到手机，点击安装。
-2. 如果系统提示不允许安装，给你正在使用的浏览器或文件管理器开启“允许安装未知应用”。
-3. 打开 Relative Ear，默认进入 **练耳**；只有使用 **唱唱名** 或 **识音** 时才需要麦克风权限。
+Install new official releases over the existing app to keep your history and settings. Official versions share one signing key. Debug builds may not replace official builds; uninstalling deletes local data.
 
-新版本直接覆盖安装，训练记录会保留。正式发布包需使用同一签名；本地 debug 包与正式包不能保证互相覆盖，卸载会删除记录。
+## Ear training
 
-本地开发构建的通用安装包位于 `app\build\outputs\apk\debug\app-universal-debug.apk`，同目录还有各架构的开发包。开发构建与签名方法见 [开发指南](docs/DEVELOPMENT.md) 和 [发布指南](docs/RELEASE.md)。
+1. Open **练耳**. The default range is **C4 / D4 / E4 = Do / Re / Mi**.
+2. Tap **听唱名示范** to hear the selected notes with synchronized labels. For free note previews, use the separate **钢琴** tab.
+3. Tap **开始练习**, listen to a short note, and choose your answer. The pre-answer illustration does not reveal the pitch.
+4. Check the feedback, optionally tap **听正确答案**, then **下一题**. Each round has 10 questions. You can replay the question; only the first submitted answer counts.
+5. Under **本轮练习 → 调整**, choose three, five, eight, or a custom selection of C4–C5 natural notes. Choose solfege (**唱名 Do / Re**) or pitch-name (**音名 C4 / D4**) answers. Configuration is locked during a round.
 
-## 先练听唱名：听到声音，认出 Do / Re / Mi
+The mapping is fixed, not movable Do:
 
-<img src="docs/images/studio-home.png" alt="固定 C4 练习台：范围设置、八分音符与快速练习入口" width="300" />
-<img src="docs/images/eight-note-question.png" alt="八音听辨选项：C4–C5 与对应唱名，页面可上下滚动" width="300" />
+`C4=Do · D4=Re · E4=Mi · F4=Fa · G4=Sol · A4=La · B4=Si · C5=Do↑`
 
-1. 进入 **练耳**，默认练 `C4 / D4 / E4`，对应 **Do / Re / Mi**。
-2. 先在 **八键小钢琴** 点击白键试听，或点击 **听唱名示范**。示范时会同步显示正在播放的音名、唱名和八分音符谱位。
-3. 点击 **开始练习**，每题只播放一个短音，选择你听到的音符。答题前的图案只是八分音符图标，不透露实际谱位。
-4. 答题后查看正确音符，可以 **听正确答案**，再点 **下一题**。每轮 10 题，答题不限时，可以重播。
-5. 点 **本轮练习 → 调整**，选择三音、五音、八音或自由点选考核音符，答案可以切换为 **唱名 Do / Re** 或 **音名 C4 / D4**。范围、显示方式和速度自动保存在手机上；本轮开始后配置锁定，避免中途改题。
+Do↑ means the higher-octave Do. Default tuning is A4=440 Hz; C4 is approximately 261.63 Hz. Start with three notes at 80 BPM, then expand the range.
 
-当前采用**固定唱名**：`C4=Do、D4=Re、E4=Mi、F4=Fa、G4=Sol、A4=La、B4=Si、C5=Do↑`，不会随机换调。Do↑ 表示高八度的 Do，选项同时显示八度，C4 和 C5 不会混为一个答案。默认 A4=440 Hz，C4 约 261.63 Hz；若手动改变调音基准，全部声音会随之调整。
+Playback uses eighth-note slots at **60 / 80 / 100 / 120 BPM**. At 80 BPM, each slot is 375 ms including a short silent articulation gap. Tempo affects playback only, not your answer deadline or rhythm score. There is no separate exam mode yet.
 
-建议先用三音、80 BPM 练熟声音，再扩展五音和八音。**八分音符是节奏时值，不是“八个音”的意思**：按四分音符为一拍，每个短音占半拍。支持 60/80/100/120 BPM；80 BPM 每音 375 毫秒，包含尾部短促断奏间隔。速度仅影响播放，不考核点击节奏或回唱节奏。
+## Standalone piano and fullscreen
 
-成绩只计首次提交的答案。当前为练习模式，尚无单独的考试模式。
+1. Open **Piano (钢琴)** to access eight white keys from C4 to C5.
+2. Tap a key to hear a short synthesized note. Quickly tapping another key switches the preview. On narrow screens, scroll the keyboard horizontally.
+3. Tap **Expand fullscreen (展开全屏)** for a landscape keyboard without the app navigation or system bars.
+4. Tap **Exit fullscreen (退出全屏)** or use Android Back to return to the piano page and restore the previous orientation setting.
 
-小钢琴横向排列 `Do / Re / Mi / Fa / Sol / La / Si / Do↑` 八个白键，始终对应 C4–C5，不受本轮三音/五音范围限制，也不会修改考核范围或生成练习记录。窄屏左右滑动查看全部键；手机横屏时可获得更宽的键盘。点击播放短合成音，连续点击会切换到新的音；不是可长按延音的专业钢琴。答题、示范及麦克风监听时禁用试听，避免泄露答案或把 App 自己的声音识别进去。
+The piano is **not embedded in ear training, singing, or detection pages**. It does not need the microphone, change the assessment range, or save a practice attempt. Rotation or backgrounding may stop the current preview; tap a key to play again. It is a note-learning keyboard, not a sustained-note or multitouch chord instrument.
 
-## 再练唱唱名：知道 Mi 是什么感觉，也能把它唱出来
+## Singing practice
 
-1. 进入 **唱唱名**，选择要练的音符范围，先听示范。
-2. 点击 **开始回唱**，先听固定 C4，再按谱面与提示唱出目标，例如 **Mi / E4**。
-3. 出现“请唱目标音”后再唱，尽量稳定保持至少半秒。
-4. App 会显示实际唱出的音名、音准指示与相对目标的偏差；正数表示偏高，负数表示偏低。
-5. 答题后可以听正确答案，再进入下一题，每轮 10 题。
+1. Open **唱唱名**, choose your note range, and listen to the demonstration.
+2. Tap **开始回唱**. Listen to C4 first, then sing the displayed target when prompted.
+3. Hold a stable pitch for at least about half a second. The app shows the detected note and pitch error; positive cents mean sharp, negative cents mean flat.
+4. Review the result, hear the correct note if needed, and continue the 10-question round.
 
-默认音准容差为 ±35 音分（100 音分等于一个半音），可以在设置里改为 ±20 或 ±50。未保存过八度选项的用户默认**区分八度**；如果 C4–C5 不适合自己的音域，可以在设置里开启 **回唱忽略八度**，唱高或低八度的同一个唱名。已有手动设置保留，这个选项只影响回唱评分，不合并听辨的 C4/C5 答案。
+The default tolerance is **±35 cents**; settings also offer ±20 or ±50. New users must match the octave by default. **回唱忽略八度** permits an octave above or below when the training range does not fit your voice; this does not merge C4 and C5 in listening questions.
 
-使用有线耳机效果更好。没有耳机时，等待播放结束再唱，避免手机把自己的声音当成你的回答。8 秒内没有形成稳定单音时会显示超时，超时计入回唱成绩。
+Use wired headphones when possible. Otherwise, wait until playback ends before singing so the microphone does not pick up the app's own sound. No stable note within 8 seconds counts as a timeout.
 
-## 识音：观察周围的单音旋律
+## Live detection and synthesized replay
 
-1. 进入 **识音**，点击 **开始监听**。
-2. 哼唱，或让手机靠近只演奏一个音的乐器。
-3. 查看当前音名（如 `A4`）、频率、音分偏差，以及 **音符白板与回放** 上最近 60 秒的音高轨迹和已识别音符。
-4. 一个音结束或换音后，会加入下方音符列表，附带起始时间和持续时间。
-5. 点击 **停止**，最后一个持续音也会加入列表。
-6. 点击 **回放识别音符**，App 用合成音重放识别出的音高。红线从白板左侧向右移动，经过哪个音符就播放该音，停顿位置保持静音；可点 **停止回放**，再次播放时从片段开头开始。
+1. Open **识音** and tap **开始监听**.
+2. Hum, or play a single note near the microphone.
+3. Watch the detected pitch, frequency, pitch deviation, and recent **60-second note timeline**.
+4. Tap **停止**. The final sustained note is added to the recognized sequence.
+5. Tap **回放识别音符** to replay the detected pitches as synthesized tones. A red cursor moves with actual audio output. Note lengths and pauses, including leading and trailing silence, are preserved.
+6. Tap **停止回放** to stop. Replaying again starts at the beginning of the retained clip.
 
-连续唱相同的音时，请留短暂停顿，否则可能被视为同一个长音。文本列表显示最近 30 个音；白板与回放保留最近 60 秒，包含窗口内的音符时长、开头/结尾的空白和中间停顿，播放总时长接近该段监听时长。监听可以持续更久，但不会回放更早的部分。回放保留识别结果的实际八度和升降音，不把所有声音强行变成 C4–C5。
+The text list shows the latest 30 notes; the timeline and replay retain the latest **60 seconds**. Listening itself can continue longer. Replay preserves recognized octaves and chromatic notes rather than forcing everything into C4–C5.
 
-这不是原声录音，也不是语音念出“Do / Re / Mi”，而是按音符合成声音。不会保存原始录音或导出乐谱；分析窗和分段确认存在延迟，识别错音也会回放错音。监听与回放互斥，不会边监听边播放。停止回放保留当前片段；重新开始监听、离开识音页或关闭 App 后不会保留上一段。后台或音频焦点丢失会停止播放，不自动继续。
+**Replay is not an original recording and does not speak the words “Do / Re / Mi.”** It synthesizes tones from detected note events. Analysis and segmentation introduce some delay; incorrectly detected notes will also replay incorrectly.
 
-**这里的“识音”不是查歌名，也不是完整歌曲转谱。** 适合人声、笛子、吉他单音、钢琴单音旋律。多人同时唱、钢琴和弦和带伴奏歌曲可能产生错误结果；鼓声、噪声等也可能没有明确音高。
+Leave short pauses between repeated notes, or they may merge into one sustained event. The temporary clip is cleared when you start a new capture, leave the detection page, or close the app. Capture and replay cannot run simultaneously. Backgrounding or losing audio focus stops playback without automatically resuming.
 
-## 记录与设置
+Detection is intended for a single voice or instrument melody. It does **not** identify songs or reliably transcribe chords, accompaniment, or full recordings.
 
-- **记录**：一次练习显示一张卡片，查看时间、已答题数、本次正确率和考核范围；首页显示累计练习次数与按已答题目计算的累计正确率，最近显示 100 次练习，不再把每个音铺在列表里。
-- 点击卡片的 **查看音符详情**，才会按作答顺序显示每题的目标音、你的选择、正确/错误/超时、用时、重播次数及回唱偏差。点 **返回练习记录** 或系统返回键回到列表。
-- 每轮 10 题；提前离开或关闭 App 时，已答题目仍保存在同一条“部分练习”中，未答题不计成绩。没有提交答案的试听或练习不会新增记录；重新开始一轮会产生新记录。
-- 升级保留旧成绩；旧版音程、首调与回唱记录会单独标明，不把旧题目重新解释为固定唱名。新记录附带当时的考核范围、答案形式和播放速度。
-- **设置**：调整 A4 调音基准（415–466 Hz）、音准容差和是否忽略八度。
-- **删除全部训练记录**：确认后删除本地成绩，不可恢复；不会重置设置。
-- 切换页面、锁屏或切到后台会停止录音。未完成题目不计成绩，返回后需手动开始。
+## History and settings
 
-## 检查更新
+- **记录** shows **one card per practice**, with time, answered questions, accuracy, and the configuration. Tap a card for chronological per-note answers, timeouts, response times, replays, and singing errors.
+- The list shows the latest 100 practices; overall accuracy is weighted by answered questions across all saved practices. Different ranges and legacy modes are not directly comparable difficulty levels.
+- Leaving a round early preserves its answered portion as a partial practice. Unanswered questions and piano previews do not create scores. Existing records remain available after upgrades.
+- **设置** controls A4 tuning (415–466 Hz), singing tolerance, and octave matching. **删除全部训练记录** deletes scores after confirmation but keeps settings.
 
-进入 **设置 → 版本与更新 → 检查更新**。有新的公开版本（包含 `0.0.x` 预览版）时，App 会显示版本号并提示 **前往下载**，优先选择手机支持的架构；无法匹配时选择通用包。选择“稍后再说”后，仍可在更新卡片点“下载 APK”或查看发布说明。
+## Updates
 
-下载链接会交给浏览器或系统可处理链接的应用打开。下载后手动安装，可覆盖正式旧版并保留记录；App 不自动下载或安装，也不后台检查。联网失败、GitHub 限流或发布资产不完整会明确提示，可以重试或直接打开发布页面。离线训练不受影响。
+Open **设置 → 版本与更新 → 检查更新**. Published `0.0.x` previews are included. When an update is available, tap **前往下载**; the app chooses your supported ABI, with universal as a fallback.
 
-`0.0.4` 及更早版本还没有此入口，需要先从 Releases 手动安装 `0.0.5` 或更新版本。
+A browser or another external app handles the download. Install the APK manually over your existing official version. The app does not automatically check, download, or install updates. Network errors, rate limits, and incomplete release assets are reported explicitly. Versions `0.0.4` and earlier need a manual upgrade before this update entry is available.
 
-## 常见问题
+## Privacy, troubleshooting, and project checks
 
-**为什么一直没有识别结果？**
-先确认麦克风权限，停止其他录音应用，靠近手机，用稳定单音测试。音量太小、声音过短或环境复杂时，不一定能识别。检测范围约 65–1000 Hz。
+Raw microphone audio is processed locally, not saved or uploaded. Scores and settings stay on your phone, with system cloud backup disabled. Synthesized replay is generated in memory. Only a manual update check contacts GitHub; it sends no recordings or scores. See [Privacy](docs/PRIVACY.md).
 
-**为什么显示高或低一个八度？**
-泛音、手机麦克风及复杂声源可能影响检测。试试换距离、降低背景噪声；回唱可按需要开启忽略八度，但它不会让复杂音乐转录变准确。
+If no stable pitch appears, check microphone permission, stop other recording apps, reduce background noise, and try a clear sustained note. The detector covers roughly **65–1000 Hz**. For octave errors, try changing microphone distance or reducing accompaniment. If permission was permanently denied, enable it in Android's app settings.
 
-**拒绝权限以后怎么办？**
-练耳不受影响。唱唱名或识音可再次请求权限；永久拒绝后需去系统“应用 → Relative Ear → 权限”开启麦克风。
+The [main-branch check badge](https://github.com/gongpx20069/relative-ear/actions/workflows/ci.yml) shows current checks; historical failed runs remain visible. CI runs the complete instrumentation suite **once**, collecting screenshots and a JUnit report from the same session. Failures, skips, empty reports, and mismatched results do not pass. Emulator checks do not replace real-phone audio validation.
 
-**数据会传出去吗？**
-App 不使用分析 SDK、不保存原始音频，训练结果和设置仅保存在本机，系统云备份关闭。仅点击检查更新时向 GitHub 查询公开发布信息，不发送录音或成绩；打开下载链接后由外部应用处理下载。详见 [隐私说明](docs/PRIVACY.md)。
+## Documentation
 
-## 文档
+[Chinese user guide](README.zh-CN.md) · [Document index](agent.md) · [Design](docs/DESIGN.md) · [Development](docs/DEVELOPMENT.md) · [Testing](docs/TESTING.md) · [Release process](docs/RELEASE.md)
 
-完整文档导航见 [agent.md](agent.md)。产品边界与评分依据见 [设计文档](docs/DESIGN.md)，已实现范围与构建方法见 [开发指南](docs/DEVELOPMENT.md)。
+Engineering documents are currently in Chinese. For local builds and signing, follow the development and release guides rather than installing a debug APK over an official release.

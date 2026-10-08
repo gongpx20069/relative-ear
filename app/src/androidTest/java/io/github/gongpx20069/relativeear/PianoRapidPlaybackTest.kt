@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class PianoRapidPlaybackTest {
     val compose = createAndroidComposeRule<MainActivity>()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(compose).around(TestLocaleRule())
 
     private class DelayedCleanupAudio(private val output: AudioSession) : AudioSession by output {
         val started = CopyOnWriteArrayList<Pair<Int, ToneVoice>>()

@@ -29,7 +29,7 @@ import java.io.File
 
 class TrainingUiTest {
     val compose = createAndroidComposeRule<MainActivity>()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(compose).around(TestLocaleRule())
 
     companion object {
         @JvmStatic @BeforeClass fun resetBeforeLaunchingActivity() = resetData()

@@ -2,6 +2,8 @@ package io.github.gongpx20069.relativeear
 
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.app.LocaleManager
+import android.os.Build
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
@@ -24,7 +26,7 @@ import java.util.Locale
 
 class LanguageSettingsTest {
     val compose = createAndroidComposeRule<MainActivity>()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule("")).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(compose).around(TestLocaleRule(""))
 
     private fun waitFor(text: String) = compose.waitUntil(15_000) {
         compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
@@ -67,7 +69,9 @@ class LanguageSettingsTest {
         compose.onNodeWithTag("language-CHINESE").performScrollTo().performClick()
         waitFor("跟随系统")
         compose.onNodeWithTag("language-SYSTEM").performScrollTo().performClick()
-        val systemLanguage = Resources.getSystem().configuration.locales[0].language
+        val systemLanguage = if (Build.VERSION.SDK_INT >= 33) {
+            context.getSystemService(LocaleManager::class.java).systemLocales[0].language
+        } else Resources.getSystem().configuration.locales[0].language
         waitFor(if (systemLanguage == "zh") "跟随系统" else "Follow system")
         compose.onNodeWithTag("language-SYSTEM").assertIsSelected()
         assertEquals(AppLanguage.SYSTEM, AppLanguage.current(compose.activity))

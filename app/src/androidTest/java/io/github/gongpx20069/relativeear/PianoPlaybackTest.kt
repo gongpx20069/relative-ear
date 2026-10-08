@@ -33,7 +33,7 @@ import java.io.File
 
 class PianoPlaybackTest {
     val compose = createAndroidComposeRule<MainActivity>()
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(compose).around(TestLocaleRule())
 
     @Test fun actualMainPageHasEightAccessiblePianoKeysAndPreviewDoesNotSaveAnAttempt() {
         compose.waitUntil(10_000) {

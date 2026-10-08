@@ -2,6 +2,7 @@ package io.github.gongpx20069.relativeear
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import io.github.gongpx20069.relativeear.core.AnswerNotation
@@ -22,9 +23,27 @@ data class Attempt(
     val timeMs: Long = System.currentTimeMillis(),
     val training: TrainingSetup? = null,
 )
-data class History(val attempts: List<Attempt> = emptyList(), val total: Int = 0, val correct: Int = 0)
+data class PracticeSummary(
+    val session: String,
+    val mode: String,
+    val timeMs: Long,
+    val total: Int,
+    val correct: Int,
+    val training: TrainingSetup? = null,
+) {
+    val accuracy: Int get() = if (total == 0) 0 else (correct * 100L / total).toInt()
+}
+data class History(
+    val practices: List<PracticeSummary> = emptyList(),
+    val total: Int = 0,
+    val correct: Int = 0,
+    val practiceCount: Int = 0,
+) {
+    val accuracy: Int get() = if (total == 0) 0 else (correct * 100L / total).toInt()
+}
 
-class HistoryStore(context: Context) : SQLiteOpenHelper(context, "training.db", null, 2) {
+class HistoryStore(context: Context, databaseName: String = "training.db") :
+    SQLiteOpenHelper(context, databaseName, null, 2) {
     private val preferences = context.getSharedPreferences("training-settings", Context.MODE_PRIVATE)
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -93,33 +112,68 @@ class HistoryStore(context: Context) : SQLiteOpenHelper(context, "training.db", 
     fun history(): History {
         var total: Int
         var correct: Int
-        readableDatabase.rawQuery("SELECT COUNT(*), COALESCE(SUM(correct), 0) FROM attempts", null).use {
+        var practiceCount: Int
+        readableDatabase.rawQuery(
+            """SELECT COUNT(*), COALESCE(SUM(total), 0), COALESCE(SUM(correct), 0)
+                FROM (SELECT COUNT(*) AS total, SUM(correct) AS correct
+                    FROM attempts GROUP BY session, mode)""".trimIndent(), null,
+        ).use {
             it.moveToFirst()
-            total = it.getInt(0)
-            correct = it.getInt(1)
+            practiceCount = it.getInt(0)
+            total = it.getInt(1)
+            correct = it.getInt(2)
         }
+        val practices = mutableListOf<PracticeSummary>()
+        readableDatabase.rawQuery(
+            """SELECT a.session, a.mode, a.time_ms, a.training_notes, a.notation, a.bpm,
+                    p.total, p.correct
+                FROM attempts AS a JOIN (
+                    SELECT COUNT(*) AS total, SUM(correct) AS correct,
+                        MIN(id) AS first_id, MAX(id) AS last_id
+                    FROM attempts GROUP BY session, mode
+                    ORDER BY MAX(id) DESC LIMIT 100
+                ) AS p ON a.id = p.first_id
+                ORDER BY p.last_id DESC""".trimIndent(), null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                practices.add(PracticeSummary(
+                    cursor.getString(cursor.getColumnIndexOrThrow("session")),
+                    cursor.getString(cursor.getColumnIndexOrThrow("mode")),
+                    cursor.getLong(cursor.getColumnIndexOrThrow("time_ms")),
+                    cursor.getInt(cursor.getColumnIndexOrThrow("total")),
+                    cursor.getInt(cursor.getColumnIndexOrThrow("correct")),
+                    readTraining(cursor),
+                ))
+            }
+        }
+        return History(practices, total, correct, practiceCount)
+    }
+    private fun readTraining(cursor: Cursor): TrainingSetup? {
+        val notesIndex = cursor.getColumnIndexOrThrow("training_notes")
+        val notationIndex = cursor.getColumnIndexOrThrow("notation")
+        val bpmIndex = cursor.getColumnIndexOrThrow("bpm")
+        return if (cursor.isNull(notesIndex) && cursor.isNull(notationIndex) && cursor.isNull(bpmIndex)) null
+            else decodeTraining(cursor.getString(notesIndex), cursor.getString(notationIndex), cursor.getInt(bpmIndex))
+    }
+    fun attempts(practice: PracticeSummary): List<Attempt> {
         val attempts = mutableListOf<Attempt>()
-        readableDatabase.query("attempts", null, null, null, null, null, "id DESC", "100").use { cursor ->
+        readableDatabase.query("attempts", null, "session = ? AND mode = ?",
+            arrayOf(practice.session, practice.mode), null, null, "id ASC").use { cursor ->
             while (cursor.moveToNext()) {
                 fun int(column: String) = cursor.getInt(cursor.getColumnIndexOrThrow(column))
                 fun long(column: String) = cursor.getLong(cursor.getColumnIndexOrThrow(column))
                 val centsIndex = cursor.getColumnIndexOrThrow("cents")
-                val notesIndex = cursor.getColumnIndexOrThrow("training_notes")
-                val notationIndex = cursor.getColumnIndexOrThrow("notation")
-                val bpmIndex = cursor.getColumnIndexOrThrow("bpm")
-                val training = if (cursor.isNull(notesIndex) && cursor.isNull(notationIndex) && cursor.isNull(bpmIndex)) null
-                    else decodeTraining(cursor.getString(notesIndex), cursor.getString(notationIndex), int("bpm"))
                 attempts.add(
                     Attempt(
                         cursor.getString(cursor.getColumnIndexOrThrow("mode")),
                         int("root"), int("target"), int("answer"), int("correct") == 1, int("timeout") == 1,
                         if (cursor.isNull(centsIndex)) null else cursor.getDouble(centsIndex),
-                        long("reaction_ms"), int("replays"), long("time_ms"), training,
+                        long("reaction_ms"), int("replays"), long("time_ms"), readTraining(cursor),
                     ),
                 )
             }
         }
-        return History(attempts, total, correct)
+        return attempts
     }
     fun clear() { writableDatabase.delete("attempts", null, null) }
 }

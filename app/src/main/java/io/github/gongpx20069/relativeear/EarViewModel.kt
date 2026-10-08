@@ -53,6 +53,9 @@ data class UiState(
     val result: SingingResult? = null,
     val message: String? = null,
     val history: History = History(),
+    val selectedPractice: PracticeSummary? = null,
+    val practiceAttempts: List<Attempt> = emptyList(),
+    val practiceLoading: Boolean = false,
     val loaded: Boolean = false,
     val update: UpdateState = UpdateState(),
 ) {
@@ -87,17 +90,17 @@ class EarViewModel @JvmOverloads constructor(
     }
 
     private fun text(id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
-    private suspend fun storage(action: suspend () -> Unit): Boolean = try {
+    private suspend fun storage(errorMessage: Int = R.string.storage_error, action: suspend () -> Unit): Boolean = try {
         withContext(Dispatchers.IO) { action() }
         true
     } catch (error: SQLiteException) {
-        storageError(error); false
+        storageError(error, errorMessage); false
     } catch (error: IOException) {
-        storageError(error); false
+        storageError(error, errorMessage); false
     }
-    private fun storageError(error: Exception) {
+    private fun storageError(error: Exception, errorMessage: Int) {
         Log.e("RelativeEar", "Local storage operation failed", error)
-        mutable.update { it.copy(message = text(R.string.storage_error, error.message ?: error.javaClass.simpleName)) }
+        mutable.update { it.copy(message = text(errorMessage, error.message ?: error.javaClass.simpleName)) }
     }
 
     fun select(screen: Screen) {
@@ -108,7 +111,7 @@ class EarViewModel @JvmOverloads constructor(
             mutable.update {
                 it.copy(screen = screen, phase = Phase.IDLE, question = null, frame = null, result = null,
                     curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0,
-                    demoNote = null)
+                    demoNote = null, selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false)
             }
         }
     }
@@ -322,9 +325,38 @@ class EarViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             storage {
                 store.clear()
-                mutable.update { it.copy(history = History(), message = null) }
+                mutable.update { it.copy(history = History(), message = null, selectedPractice = null,
+                    practiceAttempts = emptyList(), practiceLoading = false) }
             }
         }
+    }
+    fun openPractice(practice: PracticeSummary) {
+        val snapshot = state.value
+        if (snapshot.screen != Screen.HISTORY || snapshot.phase == Phase.SAVING || snapshot.practiceLoading) return
+        if (practice !in snapshot.history.practices) {
+            Log.w("RelativeEar", "Requested practice is not in loaded history")
+            mutable.update { it.copy(message = text(R.string.practice_missing)) }
+            return
+        }
+        mutable.update { it.copy(selectedPractice = practice, practiceAttempts = emptyList(),
+            practiceLoading = true, message = null) }
+        viewModelScope.launch {
+            val loaded = storage(R.string.practice_load_error) {
+                val attempts = store.attempts(practice)
+                if (attempts.isEmpty()) throw IOException("Saved practice no longer exists")
+                mutable.update {
+                    if (it.selectedPractice == practice) it.copy(practiceAttempts = attempts, practiceLoading = false)
+                    else it
+                }
+            }
+            if (!loaded) mutable.update {
+                if (it.selectedPractice == practice) it.copy(practiceLoading = false) else it
+            }
+        }
+    }
+    fun closePractice() {
+        mutable.update { it.copy(selectedPractice = null, practiceAttempts = emptyList(),
+            practiceLoading = false, message = null) }
     }
     fun checkForUpdates() {
         if (state.value.update.checking) return

@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,9 +72,6 @@ import io.github.gongpx20069.relativeear.core.FixedTraining
 import io.github.gongpx20069.relativeear.core.Music
 import io.github.gongpx20069.relativeear.core.NoteQuestion
 import io.github.gongpx20069.relativeear.core.TrainingSetup
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
     private val model: EarViewModel by viewModels()
@@ -118,7 +116,7 @@ private fun EarApp(model: EarViewModel) {
                 if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
                 model::replay, model::playReference, model::previewNote, model::answer, model::interrupt)
             Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening)
-            Screen.HISTORY -> HistoryPage(state)
+            Screen.HISTORY -> HistoryPage(state, model::openPractice, model::closePractice)
             Screen.SETTINGS -> SettingsPage(state, model)
         }
     }
@@ -138,7 +136,10 @@ private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () ->
             }
         }
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
+        val scroll = key(state.screen, state.selectedPractice?.session, state.selectedPractice?.mode) {
+            rememberScrollState()
+        }
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(8.dp).background(Pine, RoundedCornerShape(4.dp)))
@@ -161,7 +162,7 @@ private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () ->
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable () -> Unit) {
+internal fun SectionCard(title: String, content: @Composable () -> Unit) {
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -420,54 +421,6 @@ private fun ListeningPage(state: UiState, onStart: () -> Unit, onStop: () -> Uni
                 Text(stringResource(R.string.note_timing, it.startMs / 1000.0, it.durationMs / 1000.0))
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-}
-
-@Composable
-private fun HistoryPage(state: UiState) {
-    val history = state.history
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        listOf(R.string.total_attempts to history.total.toString(), R.string.accuracy to
-            "${if (history.total == 0) 0 else history.correct * 100 / history.total}%").forEach { (label, value) ->
-            Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(value, style = MaterialTheme.typography.headlineLarge)
-                    Text(stringResource(label), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-    Text(stringResource(R.string.history_scope_hint), style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
-    if (history.attempts.isEmpty()) SectionCard(stringResource(R.string.recent_practice)) {
-        Text(stringResource(R.string.empty_history))
-    }
-    val format = remember { DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(ZoneId.systemDefault()) }
-    history.attempts.forEach { attempt ->
-        val mode = stringResource(when (attempt.mode) {
-            "fixed_note" -> R.string.ear_tab
-            "sing_fixed" -> R.string.sing_tab
-            "sing_degree", "degree" -> R.string.legacy_solfege
-            "sing" -> R.string.legacy_singing
-            else -> R.string.legacy_interval
-        })
-        SectionCard(mode) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(Music.name(attempt.target), style = MaterialTheme.typography.titleLarge)
-                Text(stringResource(when {
-                    attempt.timeout -> R.string.history_timeout
-                    attempt.correct -> R.string.correct
-                    else -> R.string.history_wrong
-                }), color = if (attempt.correct) Pine else MaterialTheme.colorScheme.error)
-            }
-            Text(format.format(Instant.ofEpochMilli(attempt.timeMs)), style = MaterialTheme.typography.bodySmall)
-            attempt.training?.let { setup ->
-                Text(stringResource(R.string.history_training, setup.notes.joinToString("/") { Music.name(it) },
-                    setup.bpm, stringResource(if (setup.notation == AnswerNotation.SOLFEGE)
-                        R.string.solfege_option else R.string.note_name_option)), style = MaterialTheme.typography.bodySmall)
-            }
-            attempt.cents?.let { Text(stringResource(R.string.history_cents, it)) }
         }
     }
 }

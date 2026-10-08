@@ -34,4 +34,15 @@ class UiStateTest {
         }
         assertFalse(UiState().configurable)
     }
+    @Test fun historyCountsPracticesButAccuracyRemainsWeightedByAnsweredNotes() {
+        val history = History(total = 10, correct = 1, practiceCount = 2)
+        assertEquals(2, history.practiceCount)
+        assertEquals(10, history.accuracy)
+        assertEquals(0, History().accuracy)
+        val practice = PracticeSummary("round", "fixed_note", 1000, 3, 2)
+        assertEquals(66, practice.accuracy)
+        assertNull(UiState().selectedPractice)
+        assertTrue(UiState().practiceAttempts.isEmpty())
+        assertFalse(UiState().practiceLoading)
+    }
 }

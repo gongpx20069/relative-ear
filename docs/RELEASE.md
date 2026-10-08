@@ -56,17 +56,17 @@ Base64 是编码，不是加密，同样属于秘密。将其复制到 GitHub Se
 `version.properties` 是唯一版本来源：
 
 ```properties
-versionName=0.0.5
-versionCode=5
+versionName=0.0.6
+versionCode=6
 ```
 
-下次发布改为 `0.0.6` / `6`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
+下次发布改为 `0.0.7` / `7`，依次递增。不使用 `0.1.0`，不重用公开发布版本。`v0.0.1` 因 SDK action 请求已移除的旧 `tools` 包而失败，保留该标签，修复后使用 `v0.0.2`，不移动旧标签。
 
 先将代码提交推送到 main，再推送相同版本标签：
 
 ```powershell
-git tag v0.0.5
-git push origin v0.0.5
+git tag v0.0.6
+git push origin v0.0.6
 ```
 
 标签必须指向已进入 main 的提交，并与工程版本一致。工作流只响应 `v0.0.*`，Python 校验进一步拒绝前导零和不匹配的版本。
@@ -91,13 +91,13 @@ git push origin v0.0.5
 | `relative-ear-0.0.x-universal.apk` | 包含上述全部原生库 |
 | `SHA256SUMS.txt` | 五个 APK 的 SHA-256 值和对应资产名 |
 
-所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.5` / `5`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
+所有 APK 都可独立安装，版本统一从 `version.properties` 读取（当前 `0.0.6` / `6`），不为不同架构制造不同版本号。发布脚本在上传时命名为上述名称，本地 Gradle 输出仍使用 `app-<architecture>-release.apk`。
 
 本地正式构建后，先验证全部 APK，再通过 REST 发布已存在的标签：
 
 ```powershell
 python scripts\verify_apk.py --apk-dir app\build\outputs\apk\release --tools "$env:ANDROID_HOME\build-tools\35.0.0"
-python scripts\github_api.py release --tag v0.0.5 --apk-dir app\build\outputs\apk\release
+python scripts\github_api.py release --tag v0.0.6 --apk-dir app\build\outputs\apk\release
 ```
 
 正常发布仍优先使用 GitHub Actions。切换到 ABI splits 后，本地第一次构建应先执行 `.\gradlew.bat :app:clean :app:assembleRelease`，防止旧版单包输出残留；新 Actions runner 不依赖旧输出。
@@ -120,4 +120,6 @@ python scripts\github_api.py release --tag v0.0.5 --apk-dir app\build\outputs\ap
 
 历史发布 [v0.0.4](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.4) 为固定 C4、自选音符范围、两种答案格式、八分音符播放与新版练习台 UI。Actions 已发布五个同签名 APK 和校验文件；完整公开下载校验及真实模拟器 UI/迁移运行证据见 [TESTING](TESTING.md)。
 
-当前发布 [v0.0.5](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.5) 增加设置里的手动检查更新、预览版发现和按架构下载提示。五个公开 APK 已核对 SHA-256、实际 ABI、版本及固定签名，匿名更新 API 也已检查；运行证据见 [TESTING](TESTING.md)。旧 App 需先手动覆盖安装此版，后续才能使用更新入口。
+历史发布 [v0.0.5](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.5) 增加设置里的手动检查更新、预览版发现和按架构下载提示。五个公开 APK 已核对 SHA-256、实际 ABI、版本及固定签名，匿名更新 API 也已检查；运行证据见 [TESTING](TESTING.md)。旧 App 需先手动覆盖安装此版或更新版本，后续才能使用更新入口。
+
+`0.0.6` 将记录改为按练习汇总的卡片，点击查看完整逐音详情，保留部分练习和旧会话。发布前先确认 main 的 build 与实际 UI 检查均通过，再推送 `v0.0.6` 标签；仍使用固定签名和全部五种架构资产，不覆盖旧版本。

@@ -21,7 +21,9 @@ class HistoryStoreTest {
             assertEquals(training, store.training())
             assertTrue(store.settings().ignoreOctave)
             store.save("test", Attempt("fixed_note", 60, 72, 72, true, training = training), Settings())
-            assertEquals(training, store.history().attempts.single().training)
+            val practice = store.history().practices.single()
+            assertEquals(training, practice.training)
+            assertEquals(training, store.attempts(practice).single().training)
         } finally {
             store.saveSettings(originalSettings)
             store.saveTraining(originalTraining)
@@ -59,12 +61,129 @@ class HistoryStoreTest {
             val history = store.history()
             assertEquals(2, history.total)
             assertEquals(1, history.correct)
-            assertTrue(history.attempts.last().timeout)
-            assertNull(history.attempts.last().cents)
+            assertEquals(2, history.practiceCount)
+            val timeout = store.attempts(history.practices.first { it.mode == "sing" }).single()
+            assertTrue(timeout.timeout)
+            assertNull(timeout.cents)
             store.clear()
             assertEquals(0, store.history().total)
         } finally {
             store.close()
+        }
+        @Test fun groupsRoundsAndModesWithoutLosingAnswerDetailsOrPartialPractices() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            HistoryStore(context, "history-grouping-test.db").use { store ->
+                try {
+                    store.clear()
+                    val training = TrainingSetup()
+                    val answers = (0 until 10).map { index ->
+                        Attempt("fixed_note", 60, training.notes[index % 3], 60, index < 6,
+                            reactionMs = index * 1000L, replays = index, timeMs = 10_000L - index,
+                            training = training)
+                    }
+                    answers.forEach { store.save("round-one", it, Settings()) }
+                    store.save("round-two", Attempt("fixed_note", 60, 64, 62, false, training = training), Settings())
+                    store.save("round-two", Attempt("sing_fixed", 60, 64, 64, true, cents = -12.0,
+                        training = training), Settings())
+                    val history = store.history()
+                    assertEquals(3, history.practiceCount)
+                    assertEquals(12, history.total)
+                    assertEquals(7, history.correct)
+                    assertEquals(listOf("sing_fixed", "fixed_note", "fixed_note"), history.practices.map { it.mode })
+                    val complete = history.practices.last()
+                    assertEquals(10, complete.total)
+                    assertEquals(6, complete.correct)
+                    assertEquals(60, complete.accuracy)
+                    assertEquals(10_000L, complete.timeMs)
+                    assertEquals(training, complete.training)
+                    assertEquals(answers, store.attempts(complete))
+                    assertEquals(1, history.practices[1].total)
+                    assertEquals(-12.0, store.attempts(history.practices.first()).single().cents!!, 0.0)
+                    store.clear()
+                    assertEquals(History(), store.history())
+                    assertTrue(store.attempts(complete).isEmpty())
+                } finally {
+                    store.clear()
+                }
+            }
+            assertTrue(context.deleteDatabase("history-grouping-test.db"))
+        }
+        @Test fun limitsRecentPracticesRatherThanIndividualNotesAndLoadsUntruncatedDetails() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            HistoryStore(context, "history-limit-test.db").use { store ->
+                try {
+                    store.clear()
+                    store.writableDatabase.beginTransaction()
+                    val longPractice: PracticeSummary
+                    try {
+                        repeat(125) { index ->
+                            store.save("long-legacy-round", Attempt("degree", 60, 64, 2, false,
+                                replays = index, timeMs = index.toLong()), Settings())
+                        }
+                        longPractice = store.history().practices.single()
+                        repeat(105) { round ->
+                            repeat(3) {
+                                store.save("round-$round", Attempt("fixed_note", 60, 60, 60, true), Settings())
+                            }
+                        }
+                        store.writableDatabase.setTransactionSuccessful()
+                    } finally {
+                        store.writableDatabase.endTransaction()
+                    }
+                    val history = store.history()
+                    assertEquals(106, history.practiceCount)
+                    assertEquals(440, history.total)
+                    assertEquals(315, history.correct)
+                    assertEquals(100, history.practices.size)
+                    assertEquals("round-104", history.practices.first().session)
+                    assertEquals("round-5", history.practices.last().session)
+                    assertTrue(history.practices.all { it.total == 3 && it.correct == 3 })
+                    assertEquals((0 until 125).toList(), store.attempts(longPractice).map { it.replays })
+                } finally {
+                    store.clear()
+                }
+            }
+            assertTrue(context.deleteDatabase("history-limit-test.db"))
+        }
+        @Test fun upgradedVersionOneDatabaseKeepsExistingSessionGroupsAndNullableMetadata() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val name = "history-migration-test.db"
+            context.deleteDatabase(name)
+            context.openOrCreateDatabase(name, 0, null).use { db ->
+                db.execSQL("""CREATE TABLE attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT NOT NULL, mode TEXT NOT NULL,
+                    root INTEGER NOT NULL, target INTEGER NOT NULL, answer INTEGER NOT NULL,
+                    correct INTEGER NOT NULL, timeout INTEGER NOT NULL, cents REAL,
+                    reaction_ms INTEGER NOT NULL, replays INTEGER NOT NULL, time_ms INTEGER NOT NULL,
+                    a4 INTEGER NOT NULL, tolerance INTEGER NOT NULL, ignore_octave INTEGER NOT NULL,
+                    scoring_version INTEGER NOT NULL
+                )""".trimIndent())
+                repeat(2) { index ->
+                    db.execSQL("""INSERT INTO attempts (
+                        session, mode, root, target, answer, correct, timeout, cents,
+                        reaction_ms, replays, time_ms, a4, tolerance, ignore_octave, scoring_version
+                    ) VALUES ('legacy', 'degree', 60, 64, 2, ?, 0, NULL, 1000, 0, ?, 440, 35, 0, 1)""",
+                        arrayOf<Any>(index, index * 1000L))
+                }
+                db.version = 1
+            }
+            try {
+                HistoryStore(context, name).use { store ->
+                    val history = store.history()
+                    assertEquals(1, history.practiceCount)
+                    assertEquals(2, history.total)
+                    assertEquals(1, history.correct)
+                    val legacy = history.practices.single()
+                    assertEquals("degree", legacy.mode)
+                    assertNull(legacy.training)
+                    assertTrue(store.attempts(legacy).all { it.training == null && it.cents == null })
+                    store.save("new", Attempt("fixed_note", 60, 60, 60, true, training = TrainingSetup()), Settings())
+                    assertEquals(2, store.history().practiceCount)
+                    assertEquals(2, store.attempts(legacy).size)
+                }
+            } finally {
+                context.deleteDatabase(name)
+            }
         }
     }
 }

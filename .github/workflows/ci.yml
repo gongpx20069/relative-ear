@@ -66,7 +66,7 @@ jobs:
             # Gradle uninstalls apps after connected tests; an adb-owned capture session retains the images.
             adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -e class io.github.gongpx20069.relativeear.TrainingUiTest io.github.gongpx20069.relativeear.test/androidx.test.runner.AndroidJUnitRunner | tee app/build/ui-capture.log
+            adb shell am instrument -w -e class io.github.gongpx20069.relativeear.TrainingUiTest,io.github.gongpx20069.relativeear.HistoryUiTest io.github.gongpx20069.relativeear.test/androidx.test.runner.AndroidJUnitRunner | tee app/build/ui-capture.log
             grep -Eq '^OK \([1-9][0-9]* tests?\)' app/build/ui-capture.log
             mkdir -p app/build/ui-snapshots
             adb pull /sdcard/Android/data/io.github.gongpx20069.relativeear/files/ui-snapshots/. app/build/ui-snapshots/

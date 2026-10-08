@@ -81,7 +81,7 @@ class TrainingUiTest {
         }
         compose.onNodeWithText("听正确答案").assertIsEnabled()
         HistoryStore(compose.activity.applicationContext).use { store ->
-            val attempt = store.history().attempts.single()
+            val attempt = store.attempts(store.history().practices.single()).single()
             assertEquals(72, attempt.answer)
             assertEquals(AnswerNotation.NOTE_NAME, attempt.training?.notation)
             assertEquals(8, attempt.training?.notes?.size)

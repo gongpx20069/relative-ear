@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.5
+python scripts\github_api.py validate-version --tag v0.0.6
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -43,6 +43,8 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 
 `ReleaseUpdateClientTest` 使用真实 Android JSON 解析器与离线 fixture 验证分页、预览版、异常数据、断网及页数上限。`UpdateSettingsTest` 注入无网络 client，验证不自动请求、手动查询后弹出新版提示、按设备 ABI 交给打开链接回调，以及失败后重试/无更新。此测试不依赖 GitHub 在线可用性，也不会实际下载安装包。
 
+练习记录的 `HistoryStoreTest` 另覆盖完整/部分轮次、同名会话不同模式分离、详情按插入顺序完整还原、超过 100 个音不截断、最近 100 次练习与全量累计分开统计、清空记录，以及真实版本 1 数据库自动升级后仍保留旧会话与未知配置。`HistoryUiTest` 用本地 fixture 在实际 MainActivity 验证列表按练习而非逐音显示、点击详情、完整 10 题、部分回唱与超时、按钮/系统返回、切页关闭详情和删除全部记录；截图会话同时运行 TrainingUiTest 与 HistoryUiTest，导出训练页、记录页与详情页。App JVM 测试验证练习次数与按题目加权正确率的区别。
+
 ## 真机检查清单
 
 至少三款不同厂商 Android 设备，含 API 26 或接近最低版本的设备，以及较新系统：
@@ -62,6 +64,7 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 13. 八分音符 60/80/100/120 BPM 的实际输出、谱位随试听同步；答前的装饰图标不泄露音高。
 14. 从旧版覆盖升级，旧首调/音程行保持并标注；范围/显示/速度在重启后保留，新记录含配置快照。
 15. 设置手动检查更新：公开预览版能被发现，无更新、断网、限流、无浏览器都明确反馈；提示版本/架构正确，浏览器下载后可覆盖安装且历史保留。启动与进入设置不自动联网。
+16. 完成一轮 10 题只新增一张练习卡；提前退出保留部分练习。点击卡片查看全部音符、用按钮/系统返回，切页后不残留详情；覆盖升级后旧数据仍按原会话分组，删除会清空练习及详情。
 
 复杂音乐可能被单音算法误判，不能通过只演示清晰哼唱宣称歌曲主旋律识别已完成。
 

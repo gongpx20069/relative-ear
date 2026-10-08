@@ -1,6 +1,6 @@
 # 项目文档导航
 
-本文件是文档目录与交叉引用，不是面向用户的使用手册。默认用户入口是英文 [README.md](README.md)，中文入口是 [README.zh-CN.md](README.zh-CN.md)；App 界面仍为中文。
+本文件是文档目录与交叉引用，不是面向用户的使用手册。默认用户入口是英文 [README.md](README.md)，中文入口是 [README.zh-CN.md](README.zh-CN.md)；App 支持中英文、默认跟随系统，并可在设置中指定语言。
 
 | 文档 | Scope | 交叉引用 |
 |---|---|---|

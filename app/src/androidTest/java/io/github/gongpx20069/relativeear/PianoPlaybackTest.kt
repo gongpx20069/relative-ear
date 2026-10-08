@@ -27,11 +27,13 @@ import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.util.concurrent.CopyOnWriteArrayList
 import java.io.File
 
 class PianoPlaybackTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
 
     @Test fun actualMainPageHasEightAccessiblePianoKeysAndPreviewDoesNotSaveAnAttempt() {
         compose.waitUntil(10_000) {

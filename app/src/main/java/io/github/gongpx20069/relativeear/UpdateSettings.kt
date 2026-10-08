@@ -34,7 +34,7 @@ internal fun UpdateSettings(
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 Text(stringResource(R.string.update_checking))
             }
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            state.error?.let { Text(it.localized(), color = MaterialTheme.colorScheme.error) }
             if (available != null) {
                 Text(stringResource(R.string.update_found, available.versionName),
                     style = MaterialTheme.typography.titleLarge)
@@ -59,7 +59,7 @@ internal fun UpdateSettings(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.update_download_hint))
                     Text(available.apk.name, style = MaterialTheme.typography.bodySmall)
-                    state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    state.error?.let { Text(it.localized(), color = MaterialTheme.colorScheme.error) }
                 }
             },
             confirmButton = {

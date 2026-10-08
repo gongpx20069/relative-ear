@@ -6,15 +6,15 @@
 
 **Hear Do / Re / Mi, and sing in tune.** An Android app for music enthusiasts with fixed-note ear training, singing practice, live single-note detection, and a standalone mini piano. No interval-theory vocabulary is needed to get started.
 
-Android **8.0+**. The app UI is currently **Simplified Chinese**; Chinese button names are included below. No account is required. Practice and audio processing work offline.
+Android **8.0+**. The app supports **English and Simplified Chinese**, following the system by default. Chinese button names are also included below. No account is required. Practice and audio processing work offline.
 
-> **0.0.9 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
+> **0.0.10 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
 ## Install
 
 Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
 
-**0.0.9:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.9)
+**0.0.10:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.10)
 
 | APK suffix | Choose it for |
 |---|---|
@@ -33,6 +33,8 @@ Each APK is independently installable: download **one**, not every architecture.
 Install new official releases over the existing app to keep your history and settings. Official versions share one signing key. Debug builds may not replace official builds; uninstalling deletes local data.
 
 ## Ear training
+
+English navigation labels are **Train / Sing / Detect / Piano / History / Settings**.
 
 1. Open **练耳**. The default range is **C4 / D4 / E4 = Do / Re / Mi**.
 2. Tap **听唱名示范** to hear the selected notes with synchronized labels. For free note previews, use the separate **钢琴** tab.
@@ -95,6 +97,12 @@ Detection is intended for a single voice or instrument melody. It does **not** i
 - The list shows the latest 100 practices; overall accuracy is weighted by answered questions across all saved practices. Different ranges and legacy modes are not directly comparable difficulty levels.
 - Leaving a round early preserves its answered portion as a partial practice. Unanswered questions and piano previews do not create scores. Existing records remain available after upgrades.
 - **设置** controls A4 tuning (415–466 Hz), singing tolerance, and octave matching. **删除全部训练记录** deletes scores after confirmation but keeps settings.
+
+## App language
+
+Open **Settings → Language / 语言** and choose **Follow system**, **简体中文**, or **English**. Follow system is the default: Chinese systems use Simplified Chinese; unsupported languages fall back to English. An explicit choice overrides the system language and is saved across restarts. Select Follow system again to remove the override.
+
+On Android 13+, the same choice integrates with Android app-language settings. Older supported versions save it through AndroidX AppCompat. Switching language refreshes the interface and stops current audio without deleting history, tuning preferences, or the piano voice.
 
 ## Updates
 

@@ -9,11 +9,13 @@ import kotlinx.coroutines.withContext
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 
 class PianoRapidPlaybackTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
 
     private class DelayedCleanupAudio(private val output: AudioSession) : AudioSession by output {
         val started = CopyOnWriteArrayList<Pair<Int, ToneVoice>>()
@@ -58,7 +60,7 @@ class PianoRapidPlaybackTest {
         compose.waitUntil(10_000) { model.state.value.screen == Screen.PIANO }
         compose.runOnIdle { model.previewNote(60) }
         compose.waitUntil(10_000) { model.state.value.message != null }
-        assertTrue(requireNotNull(model.state.value.message).contains("fixture device failure"))
+        assertTrue(requireNotNull(model.state.value.message).resolve(compose.activity).contains("fixture device failure"))
         assertEquals(Phase.IDLE, model.state.value.phase)
         assertNull(model.state.value.pianoNote)
     }

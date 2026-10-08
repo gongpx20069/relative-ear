@@ -15,12 +15,14 @@ import org.json.JSONArray
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class UpdateSettingsTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
 
     @Test fun manualCheckFindsPreviewPromptsAndOpensTheDeviceApkWithoutAutoRequests() {
         val calls = AtomicInteger()

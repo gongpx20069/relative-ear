@@ -60,7 +60,7 @@ internal fun PianoPage(state: UiState, onNote: (Int) -> Unit, onVoice: (ToneVoic
                 OutlinedButton(onClick = onExpand) { Text(stringResource(R.string.piano_collapse)) }
             }
             PianoVoices(state, onVoice)
-            state.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            state.message?.let { Text(it.localized(), style = MaterialTheme.typography.bodySmall) }
             PianoKeys(state.canPreview, state.demoNote, onNote, Modifier.fillMaxWidth().weight(1f))
         }
     } else {

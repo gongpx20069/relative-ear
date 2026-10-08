@@ -6,9 +6,9 @@
 
 **听出 Do / Re / Mi，唱准旋律。** 一个面向音乐爱好者的 Android 练习工具：听唱名、唱唱名，以及实时识别人声或乐器的单音旋律。不需要先学“大三度、小二度”等音程术语。
 
-Android **8.0 及以上**，中文界面，无账号，训练与识音可离线使用。声音只在手机本地处理，不保存录音、不上传音频；手动检查更新时需要联网。
+Android **8.0 及以上**，支持简体中文与英文，默认跟随系统语言，无账号，训练与识音可离线使用。声音只在手机本地处理，不保存录音、不上传音频；手动检查更新时需要联网。
 
-> 当前为 `0.0.9` 早期版本。已实现下述基础功能，但尚未完成真机音准、延迟和机型兼容验证。正式安装包由 GitHub Actions 构建并发布到 Releases，以页面实际可下载资产为准。
+> 当前为 `0.0.10` 早期版本。已实现下述基础功能，但尚未完成真机音准、延迟和机型兼容验证。正式安装包由 GitHub Actions 构建并发布到 Releases，以页面实际可下载资产为准。
 
 ## 安装
 
@@ -24,7 +24,7 @@ Android **8.0 及以上**，中文界面，无账号，训练与识音可离线�
 
 每个 APK 都是完整安装包，只需下载其中一个，不需要把多个架构包一起安装。以手机系统支持的架构为准，不能只看 CPU 是否为 64 位。Release 的 `SHA256SUMS.txt` 提供五个 APK 的文件校验值。
 
-当前 `0.0.9`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.9/relative-ear-0.0.9-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.9)。
+当前 `0.0.10`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.10)。
 
 1. 将 APK 下载到手机，点击安装。
 2. 如果系统提示不允许安装，给你正在使用的浏览器或文件管理器开启“允许安装未知应用”。
@@ -97,6 +97,12 @@ Android **8.0 及以上**，中文界面，无账号，训练与识音可离线�
 - **设置**：调整 A4 调音基准（415–466 Hz）、音准容差和是否忽略八度。
 - **删除全部训练记录**：确认后删除本地成绩，不可恢复；不会重置设置。
 - 切换页面、锁屏或切到后台会停止录音。未完成题目不计成绩，返回后需手动开始。
+
+## 界面语言
+
+进入 **设置 → 语言 / Language**，可选 **跟随系统、简体中文、English**。默认跟随系统：中文系统显示简体中文，不支持的系统语言回退为英文。手动选择会保存，重启后仍有效；重新选“跟随系统”即可取消手动覆盖。
+
+Android 13 及以上也与系统的“应用语言”设置联动；旧版本由 AndroidX AppCompat 保存。切换会刷新界面并停止当前音频，不删除成绩、调音设置或钢琴音色。英文底栏为 **Train / Sing / Detect / Piano / History / Settings**。
 
 ## 检查更新
 

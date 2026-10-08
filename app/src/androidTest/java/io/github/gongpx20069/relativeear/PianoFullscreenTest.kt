@@ -16,10 +16,12 @@ import androidx.compose.ui.test.performClick
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.io.File
 
 class PianoFullscreenTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
 
     @Test fun landscapeFullscreenShowsAllEightKeysAndBothExitPathsRestoreNavigationAndOrientation() {
         val original = compose.activity.resources.configuration.orientation

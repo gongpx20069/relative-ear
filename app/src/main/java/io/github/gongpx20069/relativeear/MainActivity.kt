@@ -8,7 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,7 +84,7 @@ import io.github.gongpx20069.relativeear.core.Music
 import io.github.gongpx20069.relativeear.core.NoteQuestion
 import io.github.gongpx20069.relativeear.core.TrainingSetup
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val model: EarViewModel by viewModels()
     private var pianoPreviousOrientation: Int? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -198,7 +198,7 @@ private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () ->
             Text(stringResource(titles[state.screen.ordinal]), style = MaterialTheme.typography.headlineLarge)
             state.message?.let { message ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Text(message, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                    Text(message.localized(), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             if (!state.loaded) OutlinedButton(onClick = onReload) { Text(stringResource(R.string.reload)) }
@@ -439,6 +439,7 @@ internal fun PitchReadout(state: UiState, includeCurve: Boolean = true) {
 @Composable
 private fun SettingsPage(state: UiState, model: EarViewModel) {
     val context = LocalContext.current
+    LanguageSettings()
     UpdateSettings(state.update, model::checkForUpdates, model::dismissUpdatePrompt) { url ->
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE))

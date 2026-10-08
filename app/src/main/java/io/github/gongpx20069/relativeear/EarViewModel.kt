@@ -40,7 +40,7 @@ enum class Screen { EAR, SING, LISTEN, PIANO, HISTORY, SETTINGS }
 enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, REPLAYING, SAVING, FEEDBACK, COMPLETE }
 data class UpdateState(
     val checking: Boolean = false, val checked: Boolean = false, val available: AppUpdate? = null,
-    val prompt: Boolean = false, val error: String? = null,
+    val prompt: Boolean = false, val error: UiMessage? = null,
 )
 data class UiState(
     val screen: Screen = Screen.EAR,
@@ -63,7 +63,7 @@ data class UiState(
     val listeningMs: Long = 0,
     val replayPositionMs: Long = 0,
     val result: SingingResult? = null,
-    val message: String? = null,
+    val message: UiMessage? = null,
     val history: History = History(),
     val selectedPractice: PracticeSummary? = null,
     val practiceAttempts: List<Attempt> = emptyList(),
@@ -110,7 +110,7 @@ class EarViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun text(id: Int, vararg args: Any): String = getApplication<Application>().getString(id, *args)
+    private fun text(id: Int, vararg args: Any): UiMessage = UiMessage(id, args.toList())
     private suspend fun storage(errorMessage: Int = R.string.storage_error, action: suspend () -> Unit): Boolean = try {
         withContext(Dispatchers.IO) { action() }
         true
@@ -256,7 +256,7 @@ class EarViewModel @JvmOverloads constructor(
                     currentCoroutineContext().ensureActive()
                     Log.e("RelativeEar", "Audio operation failed", error)
                     mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null, demoNote = null, pianoNote = null,
-                        message = text(R.string.audio_error, error.message ?: "unknown")) }
+                        message = text(R.string.audio_error, error.localized ?: error.message ?: "unknown")) }
                 } catch (error: SecurityException) {
                     currentCoroutineContext().ensureActive()
                     Log.w("RelativeEar", "Microphone access denied", error)
@@ -318,7 +318,7 @@ class EarViewModel @JvmOverloads constructor(
                 if (correct) text(R.string.correct_solfege, expected) else text(R.string.wrong_answer, expected), snapshot.settings)
         }
     }
-    private suspend fun finish(attempt: Attempt, message: String, settings: Settings) {
+    private suspend fun finish(attempt: Attempt, message: UiMessage, settings: Settings) {
         mutable.update { it.copy(phase = Phase.SAVING, frame = null, answered = it.answered + 1,
             correct = it.correct + if (attempt.correct) 1 else 0, message = message) }
         val saved = storage {

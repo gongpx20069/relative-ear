@@ -4,7 +4,7 @@
 
 ## 当前实现
 
-应用版本 `0.0.9`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用界面仍为中文。
+应用版本 `0.0.10`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用支持英文/简体中文，默认跟随系统。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
 - 快速记忆：独立钢琴页提供横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽）和快速切换单音试听；展开为沉浸式横屏，退出按钮/系统返回恢复原方向设置。其他页不嵌入钢琴。训练保留实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
@@ -18,6 +18,10 @@
 - 设置更新：手动查询公开 Releases（包含 prerelease），数值比较 0.0.x 版本、ABI 选包、下载提示与发布说明；不后台检查或自动安装，网络与资产异常有显式提示。
 
 尚未实现：弱项推荐、独立考试模式、C4–C5 自然音以外的训练音库、完整旋律模唱与节奏评分、调内级数识音显示、主动噪声校准、带伴奏主旋律模型和歌曲转谱。
+
+## 界面语言
+
+语言实现使用 AppCompatActivity 与 AppCompat 1.7.0 的 setApplicationLocales；空 LocaleList 表示跟随系统，手动支持 en / zh-Hans。Android 13+ 接入平台应用语言，较旧版本使用 autoStoreLocales 的本机持久化；manifest 声明 locales_config，默认 values 是完整英文，values-zh 为完整简体中文。不自行改全局 Locale 或覆盖系统资源。Compose 文案及无障碍描述从资源读取；ViewModel 的提示/更新错误保存 UiMessage 资源 ID 和参数，在 UI 按当前语言解析，嵌套音频设备错误也本地化，避免重建后残留旧语言。切换引起 Activity 配置更新，仍遵守 onStop 中断音频，不清空历史或设置。
 
 ## 环境
 
@@ -106,6 +110,6 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 - 新功能的领域计算先加入 `core` 测试，再接 UI。
 - 错误必须有 UI 提示；保存失败不能说成绩已成功保存。
 - 不将低置信结果变成零频率，不依赖目标答案“修正”检测结果。
-- 中文文案集中在 `strings.xml`，唱名名称使用资源数组；旧音程资源仅用于兼容。
+- 英文文案集中在 `values/strings.xml`，中文对应 `values-zh/strings.xml`，资源与格式参数必须完全匹配；唱名名称使用资源数组，旧音程资源仅用于兼容。
 - 不提交 SDK 路径、构建输出、签名材料、token 或个人录音。
 - 应用版本只在 `version.properties` 修改，发布要求见 [RELEASE.md](RELEASE.md)。

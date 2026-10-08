@@ -19,10 +19,12 @@ import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.io.File
 
 class HistoryUiTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(TestLocaleRule()).around(compose)
 
     companion object {
         @JvmStatic @BeforeClass fun prepareBeforeLaunchingActivity() = seed()

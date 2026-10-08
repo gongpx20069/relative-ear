@@ -33,6 +33,10 @@ jobs:
   ui:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [29, 35]
     steps:
       - uses: actions/checkout@v4
       - name: Prepare UI diagnostics
@@ -58,9 +62,9 @@ jobs:
       - name: Exercise training UI and database upgrades
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          # Reuse the compilation platform; the emulator runtime remains Android 10.
+          # Reuse SDK 35 while testing compatibility and Android 13+ app locales.
           api-level: 35
-          system-image-api-level: 29
+          system-image-api-level: ${{ matrix.api }}
           arch: x86_64
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -memory 1536
@@ -77,7 +81,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-snapshots
+          name: ui-snapshots-api-${{ matrix.api }}
           path: |
             app/build/ui-snapshots/
             app/build/ui-capture.log

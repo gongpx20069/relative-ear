@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.9
+python scripts\github_api.py validate-version --tag v0.0.10
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -37,7 +37,7 @@ Python 测试使用模拟 REST 响应：版本规则、创建公开仓库、五�
 
 此测试会清空测试 App 的记录，只能在测试设备/模拟器运行，不要在有需要保留数据的日常安装上运行。
 
-CI 的独立 `ui` 任务在 API 29 模拟器通过 adb 安装两个 APK，并用 AndroidJUnitRunner 执行完整测试集一次，不做用于截图的第二轮重跑。测试结束后保持 App 安装，立即收集截图、UiReportListener 生成的 JUnit XML、runner 日志和环境诊断；`ui-snapshots` artifact 即为同次运行证据。`validate_instrumentation.py` 核对非空用例、失败/错误/跳过和唯一 `OK (N tests)` 汇总，XML 与日志数量必须一致；不能仅相信 adb 的退出码。Python 回归测试覆盖坏报告、缺失/不一致汇总和失败标记。模拟器不验证真实手机麦克风或扬声器音准。
+CI 的独立 `ui` 任务在 API 29 / 35 模拟器分别通过 adb 安装两个 APK，并用 AndroidJUnitRunner 各执行完整测试集一次，不做用于截图的第二轮重跑。测试结束后保持 App 安装，立即收集截图、UiReportListener 生成的 JUnit XML、runner 日志和环境诊断；`ui-snapshots-api-29` / `ui-snapshots-api-35` artifact 即为同次运行证据。`validate_instrumentation.py` 核对非空用例、失败/错误/跳过和唯一 `OK (N tests)` 汇总，XML 与日志数量必须一致；不能仅相信 adb 的退出码。Python 回归测试覆盖坏报告、缺失/不一致汇总和失败标记。模拟器不验证真实手机麦克风或扬声器音准。
 
 模拟器 action 的 `api-level` 使用已安装的编译 SDK 35，`system-image-api-level` 单独指定运行镜像 29；不要把两者都设为 29，否则会额外下载本工程不使用的 SDK Platform 29。[运行 37629744920](https://github.com/gongpx20069/relative-ear/actions/runs/37629744920) 曾因此在 SDK 29 下载阶段遇到 `ZipFile unknown archive`，模拟器与测试均未启动，截图缺失是连带结果。此类准备失败不能称为 UI 断言失败，也不能靠跳过测试或忽略失败改绿；实际最新状态以 [CI 工作流](https://github.com/gongpx20069/relative-ear/actions/workflows/ci.yml) 对应提交为准。
 
@@ -54,6 +54,8 @@ CI 的独立 `ui` 任务在 API 29 模拟器通过 adb 安装两个 APK，并用
 另注入当前播放设备故障，确认仍显示真实音频错误、退出播放阶段并清除琴键高亮；不是简单隐藏所有报错。
 
 ## 真机检查清单
+
+`0.0.10` 的 LanguageSettingsTest 在真实 MainActivity 验证跟随系统、手动中文/英文、重建后保留、取消覆盖、训练/成绩保持、缓存的权限提示及更新错误随语言刷新，以及英文各页和全屏控件、嵌套音频错误与不支持语言的英文资源回退。既有中文 UI 测试使用外层 TestLocaleRule 在 Activity 启动前指定语言，并在结束后恢复，不依赖模拟器系统碰巧为中文。Python 检查两套资源键、数组长度、非空翻译、格式参数及平台 locale_config。API 29 覆盖 AppCompat 路径，API 35 覆盖平台应用语言路径；系统语言切换、应用冷启动持久化和长英文/放大字体布局还需真机复核。
 
 至少三款不同厂商 Android 设备，含 API 26 或接近最低版本的设备，以及较新系统：
 

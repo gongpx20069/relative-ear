@@ -30,7 +30,10 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class AudioFailure(message: String, cause: Throwable? = null) : Exception(message, cause)
+class AudioFailure(message: String, cause: Throwable? = null, val localized: UiMessage? = null) : Exception(message, cause) {
+    constructor(resource: Int, vararg arguments: Any, cause: Throwable? = null) :
+        this("Audio failure: $resource", cause, UiMessage(resource, arguments.toList()))
+}
 
 interface AudioSession {
     suspend fun play(chords: List<List<Int>>, a4: Double, soundMs: Int = 450, gapMs: Long = 100,
@@ -82,7 +85,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
                 if (change < 0) onInterrupted()
             }.build()
         if (manager.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            throw AudioFailure("无法取得音频焦点")
+            throw AudioFailure(R.string.audio_focus_denied)
         }
         val route = watchRoute()
         try {
@@ -90,11 +93,11 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
             val format = AudioFormat.Builder().setSampleRate(rate)
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build()
             val minimum = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
-            if (minimum <= 0) throw AudioFailure("设备不支持播放格式")
+            if (minimum <= 0) throw AudioFailure(R.string.audio_play_format)
             val track = AudioTrack.Builder().setAudioAttributes(attributes).setAudioFormat(format)
                 .setBufferSizeInBytes(maxOf(minimum, 4096)).setTransferMode(AudioTrack.MODE_STREAM).build()
             try {
-                if (track.state != AudioTrack.STATE_INITIALIZED) throw AudioFailure("播放初始化失败")
+                if (track.state != AudioTrack.STATE_INITIALIZED) throw AudioFailure(R.string.audio_play_init)
                 track.play()
                 val observer = launch {
                     while (true) {
@@ -109,7 +112,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
                     while (offset < samples.size) {
                         currentCoroutineContext().ensureActive()
                         val written = track.write(samples, offset, minOf(320, samples.size - offset), AudioTrack.WRITE_BLOCKING)
-                        if (written <= 0) throw AudioFailure("播放失败，错误码 $written")
+                        if (written <= 0) throw AudioFailure(R.string.audio_play_write, written)
                         offset += written
                     }
                     // Silence is part of the PCM timeline, so gaps do not accumulate coroutine timing drift.
@@ -118,7 +121,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
                         delay(10)
                         waitMs += 10
                     }
-                    if (track.playbackHeadPosition.toLong() < samples.size) throw AudioFailure("播放设备未完成输出")
+                    if (track.playbackHeadPosition.toLong() < samples.size) throw AudioFailure(R.string.audio_play_incomplete)
                     observer.join()
                 } finally {
                     withContext(NonCancellable) { observer.cancelAndJoin() }
@@ -127,9 +130,9 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
                 track.release()
             }
         } catch (error: IllegalStateException) {
-            throw AudioFailure("播放设备状态异常", error)
+            throw AudioFailure(R.string.audio_play_state, cause = error)
         } catch (error: IllegalArgumentException) {
-            throw AudioFailure("播放设备配置不受支持", error)
+            throw AudioFailure(R.string.audio_play_config, cause = error)
         } finally {
             manager.unregisterAudioDeviceCallback(route)
             manager.abandonAudioFocusRequest(focus)
@@ -143,20 +146,20 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
         }
         val rate = 16_000
         val minimum = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        if (minimum <= 0) throw AudioFailure("设备不支持录音格式")
+        if (minimum <= 0) throw AudioFailure(R.string.audio_record_format)
         val recorder = try {
             AudioRecord(
                 MediaRecorder.AudioSource.VOICE_RECOGNITION, rate, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT, maxOf(minimum, 8192),
             )
         } catch (error: IllegalArgumentException) {
-            throw AudioFailure("录音设备配置不受支持", error)
+            throw AudioFailure(R.string.audio_record_config, cause = error)
         }
         val route = watchRoute()
         try {
-            if (recorder.state != AudioRecord.STATE_INITIALIZED) throw AudioFailure("录音初始化失败")
+            if (recorder.state != AudioRecord.STATE_INITIALIZED) throw AudioFailure(R.string.audio_record_init)
             recorder.startRecording()
-            if (recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) throw AudioFailure("麦克风未启动")
+            if (recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) throw AudioFailure(R.string.audio_record_start)
             val detector = PitchDetector(rate, 2048)
             val block = ShortArray(512)
             val window = FloatArray(2048)
@@ -167,7 +170,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
             while (limitMs == null || SystemClock.elapsedRealtime() - start < limitMs) {
                 currentCoroutineContext().ensureActive()
                 val read = recorder.read(block, 0, block.size, AudioRecord.READ_BLOCKING)
-                if (read <= 0) throw AudioFailure("录音读取失败，错误码 $read")
+                if (read <= 0) throw AudioFailure(R.string.audio_record_read, read)
                 window.copyInto(window, 0, read, window.size)
                 for (index in 0 until read) window[window.size - read + index] = block[index] / 32768f
                 filled = minOf(window.size, filled + read)
@@ -180,7 +183,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : Aud
                 }
             }
         } catch (error: IllegalStateException) {
-            throw AudioFailure("录音设备已中断", error)
+            throw AudioFailure(R.string.audio_record_interrupted, cause = error)
         } finally {
             manager.unregisterAudioDeviceCallback(route)
             recorder.release()

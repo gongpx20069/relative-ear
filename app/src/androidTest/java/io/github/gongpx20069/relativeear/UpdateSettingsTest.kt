@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.gongpx20069.relativeear.core.AppUpdates
+import kotlinx.coroutines.Dispatchers
 import org.json.JSONArray
 import org.junit.Assert.*
 import org.junit.Rule
@@ -34,7 +35,7 @@ class UpdateSettingsTest {
         })
         compose.activity.runOnUiThread {
             compose.activity.setContent {
-                val state by model.state.collectAsState()
+                val state by model.state.collectAsState(context = Dispatchers.Main.immediate)
                 EarTheme { UpdateSettings(state.update, model::checkForUpdates, model::dismissUpdatePrompt) {
                     opened.set(it); true
                 } }
@@ -61,7 +62,7 @@ class UpdateSettingsTest {
         })
         compose.activity.runOnUiThread {
             compose.activity.setContent {
-                val state by model.state.collectAsState()
+                val state by model.state.collectAsState(context = Dispatchers.Main.immediate)
                 EarTheme { UpdateSettings(state.update, model::checkForUpdates, model::dismissUpdatePrompt) { true } }
             }
         }

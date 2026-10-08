@@ -24,6 +24,7 @@ import io.github.gongpx20069.relativeear.core.MelodyClip
 import io.github.gongpx20069.relativeear.core.Music
 import io.github.gongpx20069.relativeear.core.PitchFrame
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -80,7 +81,7 @@ class PianoPlaybackTest {
         compose.activity.runOnUiThread {
             model.select(Screen.LISTEN)
             compose.activity.setContent {
-                val state by model.state.collectAsState()
+                val state by model.state.collectAsState(context = Dispatchers.Main.immediate)
                 EarTheme {
                     Column(Modifier.verticalScroll(rememberScrollState())) {
                         ListeningPage(state, model::listen, model::stopListening,

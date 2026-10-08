@@ -115,7 +115,8 @@ private fun EarApp(model: EarViewModel) {
             Screen.SING, Screen.EAR -> TrainingPage(state, model::configure,
                 if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
                 model::replay, model::playReference, model::previewNote, model::answer, model::interrupt)
-            Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening)
+            Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening,
+                model::replayDetected, model::stopReplay, model::previewNote)
             Screen.HISTORY -> HistoryPage(state, model::openPractice, model::closePractice)
             Screen.SETTINGS -> SettingsPage(state, model)
         }
@@ -267,23 +268,7 @@ private fun TrainingPage(
         else -> OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.stop)) }
     }
     if (state.phase in listOf(Phase.IDLE, Phase.COMPLETE, Phase.DEMONSTRATING)) {
-        SectionCard(stringResource(R.string.note_library)) {
-            Text(stringResource(R.string.library_hint), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            state.training.notes.chunked(4).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    row.forEach { note ->
-                        OutlinedButton(onClick = { onPreview(note) }, enabled = state.configurable,
-                            modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp),
-                            contentPadding = PaddingValues(vertical = 14.dp, horizontal = 2.dp)) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                NoteLabel(note, state.training.notation)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        PianoKeyboard(state.canPreview, state.demoNote, onPreview)
     }
 }
 
@@ -359,7 +344,7 @@ private fun TrainingConfiguration(state: UiState, onConfigure: (TrainingSetup) -
 }
 
 @Composable
-private fun PitchReadout(state: UiState) {
+internal fun PitchReadout(state: UiState, includeCurve: Boolean = true) {
     SectionCard(stringResource(R.string.live_pitch)) {
         val frame = state.frame
         val frequency = frame?.frequency
@@ -383,6 +368,7 @@ private fun PitchReadout(state: UiState) {
                     size.height / 2))
             }
         }
+        if (!includeCurve) return@SectionCard
         val description = stringResource(R.string.chart_description)
         val color = MaterialTheme.colorScheme.primary
         Canvas(Modifier.fillMaxWidth().height(110.dp).semantics { contentDescription = description }) {
@@ -401,26 +387,6 @@ private fun PitchReadout(state: UiState) {
                 previous?.let { drawLine(color, it, point, strokeWidth = 2.dp.toPx()) }
                 previous = point
             }
-        }
-    }
-}
-
-@Composable
-private fun ListeningPage(state: UiState, onStart: () -> Unit, onStop: () -> Unit) {
-    Text(stringResource(R.string.listen_intro), color = MaterialTheme.colorScheme.onSurfaceVariant)
-    PitchReadout(state)
-    Button(onClick = if (state.phase == Phase.LISTENING) onStop else onStart,
-        enabled = state.loaded, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
-        Text(stringResource(if (state.phase == Phase.LISTENING) R.string.stop else R.string.start_listening))
-    }
-    SectionCard(stringResource(R.string.notes_title)) {
-        if (state.notes.isEmpty()) Text(stringResource(R.string.no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        state.notes.asReversed().forEach {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(Music.name(it.midi), fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.note_timing, it.startMs / 1000.0, it.durationMs / 1000.0))
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }

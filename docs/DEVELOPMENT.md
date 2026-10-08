@@ -4,14 +4,14 @@
 
 ## 当前实现
 
-应用版本 `0.0.6`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
+应用版本 `0.0.7`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
-- 快速记忆：单音试听与带实时谱位标签的示范，答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
+- 快速记忆：横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽），快速切换单音试听、实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
 - 唱唱名：按指定音符回唱，先播放 C4，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认区分八度，已有手动设置保留。
 - UI：奶白/松绿主题、圆角分区、练习主卡、真实底栏图标、进度与答题网格、音准指示条、配置快照历史；两种 Compose 预览支持初始与八音答题布局。
 - 图标：耳朵、听觉波纹与三点，adaptive icon 及 Android 13+ 单色主题图标，不再使用播放器式音符图标。
-- 识音：YIN 单音检测，音名/Hz/cents、音高曲线、音符分段、最近 30 音列表。
+- 识音：YIN 单音检测，音名/Hz/cents、最近 60 秒白板、音符分段、最近 30 音文本列表；停止后按实际音高/时长/停顿合成回放，AudioTrack 播放头驱动红线与钢琴高亮。
 - 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置；按整轮显示最近 100 次练习，点进详情才加载该练习的全部音符，支持部分练习、页面/系统返回与确认删除。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
 - GitHub Actions：测试、lint、构建；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
@@ -55,10 +55,12 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 | `core` / PitchDetector | 可复用缓冲区的纯 Kotlin YIN，静音门限和置信过滤 |
 | `core` / SingingScorer | 时间窗口、有效覆盖、稳定性、目标偏差和首个有效答案 |
 | `core` / NoteSegmenter | 换音滞回、最短片段、静音分段及结束刷新 |
+| `core` / MelodyClip | 最近 60 秒的音符裁剪、合法时间线、停顿与当前音符定位 |
 | `app` / AudioEngine | 16 kHz 单声道 PCM 采集/合成播放、播放焦点与资源释放 |
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
 | `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
 | `app` / PracticeHistory | 按练习汇总的卡片、完整逐音详情、部分练习与返回导航 |
+| `app` / PianoKeyboard、ListeningStudio | 横向八键试听、识音白板、红线进度和互斥回放控件 |
 | `core` / AppUpdates | 数值版本比较、已发布候选、完整资产/官方地址校验与系统 ABI 优先选包 |
 | `app` / ReleaseUpdateClient、UpdateSettings | 无凭据 HTTPS 查询、分页与错误处理、设置卡片与下载提示 |
 | `app` / MainActivity、EarTheme、MusicArtwork | Compose 页面、统一主题、音符谱位与导航图标、预览、权限请求、后台中断 |
@@ -75,6 +77,10 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 记录按已有 `session` 与 `mode` 分组，不改数据库版本、不重写旧成绩；mode 防止旧数据中同名会话的不同题型混成一条。汇总先按全量会话聚合，再按最新写入 ID 选最近 100 次练习，不能先截取 100 个音符。累计次数与正确率包含全部保存数据；详情使用参数化会话/模式查询、按 ID 顺序加载且不限制为 100 音。每题仍立即持久化，以保留未做完练习；新轮次使用新会话 ID，无答案的轮次不生成历史卡片。固定唱名已保存 10 题标为完成，少于 10 题标为部分练习；旧题型不推测完成状态。选择详情后离开记录页或删除全部成绩会清除详情状态，异步加载结果不会重新打开已关闭的详情。
 
 `ToneSynthesis` 在 16 kHz PCM 中为每音保留完整半拍槽，包括 85% 发声与尾部静音；播放一次连续写入并在末尾等待输出，不累积逐音协程定时误差。音频观察任务在释放 AudioTrack 前完成取消，避免访问已释放设备。
+
+音符回放以 AudioRecord 的累计样本时间为基准，裁剪到最近 60 秒；跨窗口的长音截取交集，首尾空白与音间停顿保持静音，不按题目 BPM 重新排列音符。`ToneSynthesis.render(MelodyClip)` 复用合成包络，最长分配 960,000 个 short（约 1.92 MB）；监听帧窗口最多 2,000 帧，已结束音符只保留与窗口相交的事件，文本只显示最后 30 项。持续监听不自动结束。回唱的原 10 秒曲线不变。
+
+所有播放共用 AudioEngine 的焦点、路由、排队、实际播放头观察与取消清理。REPLAYING 与 LISTENING 互斥；播放器位置是已输出样本数，不用独立动画计时器猜进度。停止/后台/切页先 cancelAndJoin，观察器取消完成后才释放 AudioTrack。钢琴试听可替换上一枚试听，但不能中断题目、回唱或示范；不写入历史。`AudioSession` 接口允许测试注入合成 PitchFrame，生产仍使用真实 AudioRecord/AudioTrack。
 
 - 采样率 16 kHz，分析窗 2048 样本（128 ms），步长通常 512 样本（32 ms）。
 - 初始 RMS 门限 0.008，YIN 阈值 0.15，有效置信度至少 0.85。

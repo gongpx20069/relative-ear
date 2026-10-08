@@ -17,6 +17,7 @@ import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import io.github.gongpx20069.relativeear.core.ToneSynthesis
+import io.github.gongpx20069.relativeear.core.MelodyClip
 import io.github.gongpx20069.relativeear.core.PitchDetector
 import io.github.gongpx20069.relativeear.core.PitchFrame
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,14 @@ import kotlinx.coroutines.withContext
 
 class AudioFailure(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
+interface AudioSession {
+    suspend fun play(chords: List<List<Int>>, a4: Double, soundMs: Int = 450, gapMs: Long = 100,
+        onChord: (Int) -> Unit = {})
+    suspend fun playMelody(clip: MelodyClip, onPosition: (Long) -> Unit)
+    suspend fun capture(limitMs: Long? = null, onFrame: (PitchFrame) -> Boolean)
+}
+
+class AudioEngine(context: Context, private val onInterrupted: () -> Unit) : AudioSession {
     private val context = context.applicationContext
     private val manager = context.getSystemService(AudioManager::class.java)
     private val attributes = AudioAttributes.Builder()
@@ -47,11 +55,26 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
         return callback
     }
 
-    suspend fun play(
-        chords: List<List<Int>>, a4: Double, soundMs: Int = 450, gapMs: Long = 100,
-        onChord: (Int) -> Unit = {},
+    override suspend fun play(
+        chords: List<List<Int>>, a4: Double, soundMs: Int, gapMs: Long,
+        onChord: (Int) -> Unit,
     ) = withContext(Dispatchers.IO) {
         require(soundMs > 0 && gapMs >= 0 && chords.isNotEmpty() && chords.all { it.isNotEmpty() })
+        val samples = ToneSynthesis.render(chords, a4, soundMs, gapMs)
+        val slot = ToneSynthesis.samplesPerTone(soundMs, gapMs)
+        var announced = -1
+        playSamples(samples) { head ->
+            val index = (head / slot).toInt().coerceAtMost(chords.lastIndex)
+            if (index != announced) { onChord(index); announced = index }
+        }
+    }
+
+    override suspend fun playMelody(clip: MelodyClip, onPosition: (Long) -> Unit) = withContext(Dispatchers.IO) {
+        require(clip.notes.isNotEmpty())
+        playSamples(ToneSynthesis.render(clip)) { head -> onPosition(head * 1000 / ToneSynthesis.SAMPLE_RATE) }
+    }
+
+    private suspend fun playSamples(samples: ShortArray, onHead: (Long) -> Unit) = withContext(Dispatchers.IO) {
         val focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes)
             .setOnAudioFocusChangeListener { change ->
@@ -72,14 +95,10 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
             try {
                 if (track.state != AudioTrack.STATE_INITIALIZED) throw AudioFailure("播放初始化失败")
                 track.play()
-                val samples = ToneSynthesis.render(chords, a4, soundMs, gapMs)
-                val slot = ToneSynthesis.samplesPerTone(soundMs, gapMs)
                 val observer = launch {
-                    var announced = -1
                     while (true) {
-                        val head = track.playbackHeadPosition.toLong()
-                        val index = (head / slot).toInt().coerceAtMost(chords.lastIndex)
-                        if (index != announced) { onChord(index); announced = index }
+                        val head = track.playbackHeadPosition.toLong().coerceAtMost(samples.size.toLong())
+                        onHead(head)
                         if (head >= samples.size) break
                         delay(10)
                     }
@@ -117,7 +136,7 @@ class AudioEngine(context: Context, private val onInterrupted: () -> Unit) {
     }
 
     @SuppressLint("MissingPermission")
-    suspend fun capture(limitMs: Long? = null, onFrame: (PitchFrame) -> Boolean) = withContext(Dispatchers.IO) {
+    override suspend fun capture(limitMs: Long?, onFrame: (PitchFrame) -> Boolean) = withContext(Dispatchers.IO) {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             throw SecurityException("Microphone permission not granted")
         }

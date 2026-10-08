@@ -18,6 +18,7 @@ import io.github.gongpx20069.relativeear.core.TrainingSetup
 import io.github.gongpx20069.relativeear.core.SingingResult
 import io.github.gongpx20069.relativeear.core.SingingScorer
 import io.github.gongpx20069.relativeear.core.AppUpdate
+import io.github.gongpx20069.relativeear.core.MelodyClip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -31,7 +32,7 @@ import java.io.IOException
 import java.util.UUID
 
 enum class Screen { EAR, SING, LISTEN, HISTORY, SETTINGS }
-enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, SAVING, FEEDBACK, COMPLETE }
+enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, REPLAYING, SAVING, FEEDBACK, COMPLETE }
 data class UpdateState(
     val checking: Boolean = false, val checked: Boolean = false, val available: AppUpdate? = null,
     val prompt: Boolean = false, val error: String? = null,
@@ -42,6 +43,7 @@ data class UiState(
     val settings: Settings = Settings(),
     val training: TrainingSetup = TrainingSetup(),
     val demoNote: Int? = null,
+    val pianoNote: Int? = null,
     val question: NoteQuestion? = null,
     val count: Int = 0,
     val correct: Int = 0,
@@ -50,6 +52,8 @@ data class UiState(
     val frame: PitchFrame? = null,
     val curve: List<PitchFrame> = emptyList(),
     val notes: List<NoteEvent> = emptyList(),
+    val listeningMs: Long = 0,
+    val replayPositionMs: Long = 0,
     val result: SingingResult? = null,
     val message: String? = null,
     val history: History = History(),
@@ -61,15 +65,21 @@ data class UiState(
 ) {
     val configurable: Boolean get() = loaded && phase in listOf(Phase.IDLE, Phase.COMPLETE)
     val canHearAnswer: Boolean get() = question != null && phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)
+    val canPreview: Boolean get() = loaded && (phase in listOf(Phase.IDLE, Phase.COMPLETE) ||
+        (phase == Phase.DEMONSTRATING && pianoNote != null))
+    val listeningClip: MelodyClip? get() = if (listeningMs > 0) MelodyClip.recent(notes, listeningMs, settings.a4.toDouble()) else null
+    val canReplay: Boolean get() = loaded && screen == Screen.LISTEN && phase == Phase.IDLE &&
+        listeningClip?.notes?.isNotEmpty() == true
 }
 
 class EarViewModel @JvmOverloads constructor(
     application: Application, private val updateClient: ReleaseUpdateClient = ReleaseUpdateClient(),
+    audioOverride: AudioSession? = null,
 ) : AndroidViewModel(application) {
     private val store = HistoryStore(application)
     private val mutable = MutableStateFlow(UiState())
     val state = mutable.asStateFlow()
-    private val audio = AudioEngine(application) { interrupt() }
+    private val audio: AudioSession = audioOverride ?: AudioEngine(application) { interrupt() }
     private var audioJob: Job? = null
     private var answerSince = 0L
     private var session = UUID.randomUUID().toString()
@@ -111,7 +121,8 @@ class EarViewModel @JvmOverloads constructor(
             mutable.update {
                 it.copy(screen = screen, phase = Phase.IDLE, question = null, frame = null, result = null,
                     curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0,
-                    demoNote = null, selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false)
+                    demoNote = null, pianoNote = null, listeningMs = 0, replayPositionMs = 0,
+                    selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false)
             }
         }
     }
@@ -130,13 +141,13 @@ class EarViewModel @JvmOverloads constructor(
     }
     fun permissionDenied() { mutable.update { it.copy(message = text(R.string.permission_denied)) } }
     fun interrupt() {
-        if (state.value.phase !in listOf(Phase.DEMONSTRATING, Phase.PLAYING, Phase.LISTENING, Phase.ANSWERING)) return
+        if (state.value.phase !in listOf(Phase.DEMONSTRATING, Phase.PLAYING, Phase.LISTENING, Phase.ANSWERING, Phase.REPLAYING)) return
         viewModelScope.launch {
             val demonstrating = state.value.phase == Phase.DEMONSTRATING
             audioJob?.cancelAndJoin()
             audioJob = null
             mutable.update { it.copy(phase = if (demonstrating) referenceReturnPhase else Phase.IDLE,
-                frame = null, demoNote = null, message = text(R.string.interrupted)) }
+                frame = null, demoNote = null, pianoNote = null, message = text(R.string.interrupted)) }
         }
     }
 
@@ -182,13 +193,16 @@ class EarViewModel @JvmOverloads constructor(
 
     fun previewNote(note: Int) {
         val snapshot = state.value
-        if (!snapshot.configurable || audioJob?.isActive == true) return
+        if (!snapshot.canPreview) return
         require(note in FixedTraining.notes)
-        referenceReturnPhase = snapshot.phase
-        mutable.update { it.copy(phase = Phase.DEMONSTRATING, demoNote = note) }
+        if (snapshot.phase != Phase.DEMONSTRATING) referenceReturnPhase = snapshot.phase
+        val previous = audioJob
+        previous?.cancel()
+        mutable.update { it.copy(phase = Phase.DEMONSTRATING, demoNote = note, pianoNote = note, message = null) }
         launchAudio {
+            previous?.join()
             playNotes(listOf(note), snapshot)
-            mutable.update { it.copy(phase = referenceReturnPhase, demoNote = null) }
+            mutable.update { it.copy(phase = referenceReturnPhase, demoNote = null, pianoNote = null) }
         }
     }
 
@@ -210,12 +224,12 @@ class EarViewModel @JvmOverloads constructor(
                 action()
             } catch (error: AudioFailure) {
                 Log.e("RelativeEar", "Audio operation failed", error)
-                mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null, demoNote = null,
+                mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE, frame = null, demoNote = null, pianoNote = null,
                     message = text(R.string.audio_error, error.message ?: "unknown")) }
             } catch (error: SecurityException) {
                 Log.w("RelativeEar", "Microphone access denied", error)
                 mutable.update { it.copy(phase = if (it.phase == Phase.DEMONSTRATING) referenceReturnPhase else Phase.IDLE,
-                    frame = null, demoNote = null, message = text(R.string.permission_denied)) }
+                    frame = null, demoNote = null, pianoNote = null, message = text(R.string.permission_denied)) }
             }
         }
     }
@@ -282,24 +296,53 @@ class EarViewModel @JvmOverloads constructor(
         if (!saved) mutable.update { it.copy(phase = if (it.count >= 10) Phase.COMPLETE else Phase.FEEDBACK) }
     }
     fun listen() {
-        if (audioJob?.isActive == true) return
+        val snapshot = state.value
+        if (!snapshot.loaded || snapshot.screen != Screen.LISTEN || snapshot.phase != Phase.IDLE || audioJob?.isActive == true) return
         val settings = state.value.settings
-        mutable.update { it.copy(phase = Phase.LISTENING, frame = null, curve = emptyList(), notes = emptyList(), message = null) }
+        mutable.update { it.copy(phase = Phase.LISTENING, frame = null, curve = emptyList(), notes = emptyList(),
+            listeningMs = 0, replayPositionMs = 0, demoNote = null, pianoNote = null, message = null) }
         launchAudio {
             val segmenter = NoteSegmenter(settings.a4.toDouble())
             try {
                 audio.capture { frame ->
                     showFrame(frame)
                     segmenter.accept(frame)?.let { note ->
-                        mutable.update { it.copy(notes = (it.notes + note).takeLast(30)) }
+                        rememberNote(note)
                     }
                     true
                 }
             } finally {
                 segmenter.flush()?.let { note ->
-                    mutable.update { it.copy(notes = (it.notes + note).takeLast(30)) }
+                    rememberNote(note)
                 }
             }
+            mutable.update { it.copy(phase = Phase.IDLE, frame = null) }
+        }
+    }
+    private fun rememberNote(note: NoteEvent) {
+        mutable.update {
+            val origin = (it.listeningMs - MelodyClip.WINDOW_MS).coerceAtLeast(0)
+            it.copy(notes = (it.notes + note).filter { event -> event.startMs + event.durationMs > origin })
+        }
+    }
+    fun replayDetected() {
+        val snapshot = state.value
+        if (!snapshot.canReplay || audioJob?.isActive == true) return
+        val clip = checkNotNull(snapshot.listeningClip)
+        mutable.update { it.copy(phase = Phase.REPLAYING, replayPositionMs = 0, demoNote = null, frame = null, message = null) }
+        launchAudio {
+            audio.playMelody(clip) { position ->
+                mutable.update { it.copy(replayPositionMs = position, demoNote = clip.noteAt(position)) }
+            }
+            mutable.update { it.copy(phase = Phase.IDLE, replayPositionMs = clip.durationMs, demoNote = null) }
+        }
+    }
+    fun stopReplay() {
+        if (state.value.phase != Phase.REPLAYING) return
+        viewModelScope.launch {
+            audioJob?.cancelAndJoin()
+            audioJob = null
+            mutable.update { it.copy(phase = Phase.IDLE, demoNote = null) }
         }
     }
     fun stopListening() {
@@ -310,8 +353,14 @@ class EarViewModel @JvmOverloads constructor(
         }
     }
     private fun showFrame(frame: PitchFrame) {
-        mutable.update { it.copy(frame = frame,
-            curve = (it.curve + frame).filter { old -> frame.timeMs - old.timeMs <= 10_000 }.takeLast(320)) }
+        mutable.update {
+            val listening = it.screen == Screen.LISTEN
+            val window = if (listening) MelodyClip.WINDOW_MS else 10_000L
+            val origin = (frame.timeMs - window).coerceAtLeast(0)
+            it.copy(frame = frame, listeningMs = if (listening) frame.timeMs else it.listeningMs,
+                notes = if (listening) it.notes.filter { note -> note.startMs + note.durationMs > origin } else it.notes,
+                curve = (it.curve + frame).filter { old -> old.timeMs >= origin }.takeLast(if (listening) 2000 else 320))
+        }
     }
     fun settings(settings: Settings) {
         viewModelScope.launch {

@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.6
+python scripts\github_api.py validate-version --tag v0.0.7
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -45,6 +45,8 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 
 练习记录的 `HistoryStoreTest` 另覆盖完整/部分轮次、同名会话不同模式分离、详情按插入顺序完整还原、超过 100 个音不截断、最近 100 次练习与全量累计分开统计、清空记录，以及真实版本 1 数据库自动升级后仍保留旧会话与未知配置。`HistoryUiTest` 用本地 fixture 在实际 MainActivity 验证列表按练习而非逐音显示、点击详情、完整 10 题、部分回唱与超时、按钮/系统返回、切页关闭详情和删除全部记录；截图会话同时运行 TrainingUiTest 与 HistoryUiTest，导出训练页、记录页与详情页。App JVM 测试验证练习次数与按题目加权正确率的区别。
 
+`MelodyClipTest` 对实际 PCM 校验不同音长、首尾/音间静音、音高/升降音/八度和 A4 调音、60 秒交集裁剪与 1.92 MB 上限，以及非法重叠/越界时间线拒绝。`PlaybackStateTest` 验证答题/监听期间钢琴不可试听、只有已停止且存在音符的识音页能回放。`PianoPlaybackTest` 在实际 MainActivity 验证八键及不计成绩；监听输入使用合成 PitchFrame fixture，输出使用真实 AudioTrack，校验 2.56 秒片段的实际播放头、红线进度、单调位置、停止/中断/切页及麦克风互斥。不据此宣称物理麦克风准确率已验证。
+
 ## 真机检查清单
 
 至少三款不同厂商 Android 设备，含 API 26 或接近最低版本的设备，以及较新系统：
@@ -65,6 +67,8 @@ CI 的独立 `ui` 任务在 API 29 模拟器执行这些测试，`ui-snapshots` 
 14. 从旧版覆盖升级，旧首调/音程行保持并标注；范围/显示/速度在重启后保留，新记录含配置快照。
 15. 设置手动检查更新：公开预览版能被发现，无更新、断网、限流、无浏览器都明确反馈；提示版本/架构正确，浏览器下载后可覆盖安装且历史保留。启动与进入设置不自动联网。
 16. 完成一轮 10 题只新增一张练习卡；提前退出保留部分练习。点击卡片查看全部音符、用按钮/系统返回，切页后不残留详情；覆盖升级后旧数据仍按原会话分组，删除会清空练习及详情。
+17. 窄屏/横屏钢琴八键可访问，C4/C5 音高不同；连续点击切换不叠音，不改变考核范围或成绩。监听/答题时不能试听。
+18. 哼唱几个音并留停顿后停止，回放保持音长/停顿/八度，红线与听到的音一致；超过 60 秒仅回放最近窗口。停止、后台、焦点丢失和切页都释放播放器，不自动继续，不采集 App 自己的声音。
 
 复杂音乐可能被单音算法误判，不能通过只演示清晰哼唱宣称歌曲主旋律识别已完成。
 

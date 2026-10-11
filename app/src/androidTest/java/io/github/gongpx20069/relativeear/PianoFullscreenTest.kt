@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -38,8 +39,8 @@ class PianoFullscreenTest {
         for (note in listOf(60, 62, 64, 65, 67, 69, 71, 72)) {
             compose.onNodeWithTag("piano-$note").assertIsDisplayed()
         }
-        for (voice in listOf("PIANO", "PURE", "FLUTE")) {
-            compose.onNodeWithTag("voice-$voice").assertIsDisplayed().performClick()
+        for (voice in listOf("PIANO", "GUITAR", "CLARINET", "ORGAN", "PURE", "FLUTE")) {
+            compose.onNodeWithTag("voice-$voice").performScrollTo().assertIsDisplayed().performClick()
             compose.waitUntil(10_000) {
                 compose.onNodeWithTag("voice-$voice").fetchSemanticsNode().config[SemanticsProperties.Selected]
             }
@@ -66,7 +67,7 @@ class PianoFullscreenTest {
         }
         compose.onNodeWithText("钢琴").assertIsDisplayed()
         compose.onNodeWithTag("voice-FLUTE").assertIsSelected()
-        compose.onNodeWithTag("voice-${originalVoice.name}").performClick()
+        compose.onNodeWithTag("voice-${originalVoice.name}").performScrollTo().performClick()
         compose.waitUntil(10_000) {
             compose.onNodeWithTag("voice-${originalVoice.name}").fetchSemanticsNode().config[SemanticsProperties.Selected]
         }

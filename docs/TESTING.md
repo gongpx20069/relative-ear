@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.10
+python scripts\github_api.py validate-version --tag v0.0.11
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -56,6 +56,8 @@ CI 的独立 `ui` 任务在 API 29 / 35 模拟器分别通过 adb 安装两个 A
 直接注入 ViewModel 的回放/更新 Compose 测试界面在 Main.immediate 订阅状态，防止测试框架的帧调度器在音频 IO 发出状态时把原生 Ripple 动画恢复到无 Looper 的线程；保持真实按钮交互与断言，不关闭反馈组件或忽略线程异常。生产页面仍使用 collectAsStateWithLifecycle。
 
 ## 真机检查清单
+
+`0.0.11` 的 PitchReadoutLayoutTest 对无音、稳定 C4/C5/A4、低置信度、丢失后恢复，分别在 1/1.5/2 倍字体下断言音准区边界和下方内容位置完全一致，并确认无音时不显示旧音名。现有 PCM 测试自动遍历六种音色，验证 C4–C5、三种 A4 调音下的实际音高、静音、长度、无削波和波形差异；存储测试遍历所有音色，全屏测试实际滚动选择新增音色并恢复退出路径。时间轴和分段行为不变。
 
 `0.0.10` 的 LanguageSettingsTest 在真实 MainActivity 验证跟随系统、手动中文/英文、重建后保留、取消覆盖、训练/成绩保持、缓存的权限提示及更新错误随语言刷新，以及英文各页和全屏控件、嵌套音频错误与不支持语言的英文资源回退。既有中文 UI 测试使用 TestLocaleRule 在 Activity 启动后设置语言，等待实际配置生效，并在结束后恢复，不依赖模拟器系统碰巧为中文；Android 13+ 的系统语言真值读取 LocaleManager.systemLocales，不用会受应用配置影响的进程资源猜测。Python 检查两套资源键、数组长度、非空翻译、格式参数及平台 locale_config。API 29 覆盖 AppCompat 路径，API 35 覆盖平台应用语言路径；系统语言切换、应用冷启动持久化和长英文/放大字体布局还需真机复核。
 

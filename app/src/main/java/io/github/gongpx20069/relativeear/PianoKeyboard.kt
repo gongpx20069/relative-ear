@@ -79,7 +79,9 @@ private fun PianoVoices(state: UiState, onVoice: (ToneVoice) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.piano_voice))
         for ((voice, label) in listOf(ToneVoice.PIANO to R.string.voice_piano,
-            ToneVoice.FLUTE to R.string.voice_flute, ToneVoice.PURE to R.string.voice_pure)) {
+            ToneVoice.FLUTE to R.string.voice_flute, ToneVoice.GUITAR to R.string.voice_guitar,
+            ToneVoice.CLARINET to R.string.voice_clarinet, ToneVoice.ORGAN to R.string.voice_organ,
+            ToneVoice.PURE to R.string.voice_pure)) {
             FilterChip(selected = state.pianoVoice == voice, onClick = { onVoice(voice) },
                 enabled = state.canPreview && !state.pianoVoiceSaving,
                 label = { Text(stringResource(label)) }, modifier = Modifier.testTag("voice-${voice.name}"))

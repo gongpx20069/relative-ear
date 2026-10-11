@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -392,25 +393,30 @@ private fun TrainingConfiguration(state: UiState, onConfigure: (TrainingSetup) -
 internal fun PitchReadout(state: UiState, includeCurve: Boolean = true) {
     SectionCard(stringResource(R.string.live_pitch)) {
         val frame = state.frame
-        val frequency = frame?.frequency
-        if (frequency == null || frame.confidence < 0.85) {
-            Text(stringResource(R.string.no_pitch), style = MaterialTheme.typography.titleMedium)
-        } else {
-            val midi = Music.nearest(frequency, state.settings.a4.toDouble())
-            val question = state.question
-            val cents = Music.error(Music.midi(frequency, state.settings.a4.toDouble()),
+        val frequency = frame?.frequency?.takeIf { frame.confidence >= 0.85 }
+        val midi = frequency?.let { Music.nearest(it, state.settings.a4.toDouble()) }
+        val question = state.question
+        val cents = if (frequency != null && midi != null) {
+            Music.error(Music.midi(frequency, state.settings.a4.toDouble()),
                 if (state.screen == Screen.SING && question != null) question.target else midi,
                 state.screen == Screen.SING && state.settings.ignoreOctave)
-            Text(Music.name(midi), style = MaterialTheme.typography.headlineLarge)
-            Text(stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents),
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val gaugeDescription = stringResource(R.string.tuning_description, cents)
+        } else null
+        Column(Modifier.fillMaxWidth().testTag("pitch-readout-body"),
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(midi?.let(Music::name) ?: "—", style = MaterialTheme.typography.headlineLarge,
+                maxLines = 1)
+            Text(if (midi != null && cents != null)
+                stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents)
+                else stringResource(R.string.no_pitch),
+                minLines = 2, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val gaugeDescription = if (cents != null) stringResource(R.string.tuning_description, cents)
+                else stringResource(R.string.no_pitch)
             val primary = MaterialTheme.colorScheme.primary
             Canvas(Modifier.fillMaxWidth().height(26.dp).semantics { contentDescription = gaugeDescription }) {
                 drawLine(Color(0xFFE0E6DE), Offset(0f, size.height / 2), Offset(size.width, size.height / 2), 4.dp.toPx())
                 drawLine(primary, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), 2.dp.toPx())
-                drawCircle(primary, 6.dp.toPx(), Offset(((cents.coerceIn(-50.0, 50.0) + 50) / 100 * size.width).toFloat(),
-                    size.height / 2))
+                if (cents != null) drawCircle(primary, 6.dp.toPx(),
+                    Offset(((cents.coerceIn(-50.0, 50.0) + 50) / 100 * size.width).toFloat(), size.height / 2))
             }
         }
         if (!includeCurve) return@SectionCard

@@ -8,13 +8,13 @@
 
 Android **8.0+**. The app supports **English and Simplified Chinese**, following the system by default. Chinese button names are also included below. No account is required. Practice and audio processing work offline.
 
-> **0.0.10 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
+> **0.0.11 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
 ## Install
 
 Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
 
-**0.0.10:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.10/relative-ear-0.0.10-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.10)
+**0.0.11:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.11/relative-ear-0.0.11-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.11/relative-ear-0.0.11-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.11)
 
 | APK suffix | Choose it for |
 |---|---|
@@ -57,7 +57,7 @@ Playback uses eighth-note slots at **60 / 80 / 100 / 120 BPM**. At 80 BPM, each 
 3. Tap **Expand fullscreen (展开全屏)** for a landscape keyboard without the app navigation or system bars.
 4. Tap **Exit fullscreen (退出全屏)** or use Android Back to return to the piano page and restore the previous orientation setting.
 
-Use **音色** to choose **Piano (钢琴音色)**, **Flute (笛子音色)**, or **Pure tone (纯音)** in either layout. Your choice is saved and applies to the next key press, not the note already playing. Piano uses decaying harmonics; flute has a softer attack and a sustained tone. These are offline synthesized approximations, not recorded instrument samples. Ear-training demonstrations and detected-note replay keep their existing pure tone.
+Use **Voice / 音色** to choose **Piano, Flute, Guitar, Clarinet, Organ, or Pure tone** in either layout. Scroll the voice selector horizontally to reach every option on narrow screens. Your choice is saved and applies to the next key press, not the note already playing. Piano and guitar decay; flute has a softer attack, clarinet emphasizes odd harmonics, and organ sustains richer harmonics. These are offline synthesized approximations, not recorded instrument samples. Ear-training demonstrations and detected-note replay keep their existing pure tone.
 
 Rapid taps replace the current note, not queue every intermediate key. Playback waits for the previous player's resources to be released, so overlapping taps are not themselves an audio error. Genuine device or audio-focus failures are still reported.
 
@@ -75,6 +75,8 @@ The default tolerance is **±35 cents**; settings also offer ±20 or ±50. New u
 Use wired headphones when possible. Otherwise, wait until playback ends before singing so the microphone does not pick up the app's own sound. No stable note within 8 seconds counts as a timeout.
 
 ## Live detection and synthesized replay
+
+The live pitch panel reserves the same space for its note, readout, and tuning gauge whether a stable pitch is detected or not. Silence and low-confidence input show a dash and a waiting message without moving the controls below; the gauge marker disappears rather than suggesting a valid pitch.
 
 1. Open **识音** and tap **开始监听**.
 2. Hum, or play a single note near the microphone.

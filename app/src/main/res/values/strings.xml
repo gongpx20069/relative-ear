@@ -58,6 +58,9 @@
     <string name="voice_piano">Piano voice</string>
     <string name="voice_flute">Flute voice</string>
     <string name="voice_pure">Pure tone</string>
+    <string name="voice_guitar">Guitar voice</string>
+    <string name="voice_clarinet">Clarinet voice</string>
+    <string name="voice_organ">Organ voice</string>
     <string name="melody_title">Note timeline and replay</string>
     <string name="melody_hint">Stop listening to replay the latest 60 seconds as synthesized notes, preserving durations and pauses. The red cursor follows actual audio output. This is not an original recording or reliable complex-music transcription.</string>
     <string name="melody_recent_window">Listening can continue indefinitely; the timeline and replay retain only the latest 60 seconds.</string>

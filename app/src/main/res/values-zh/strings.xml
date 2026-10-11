@@ -225,6 +225,15 @@
     <string name="detection_seek">浏览完整片段</string>
     <string name="detection_canvas_description">%1$s时间轴，显示 %2$.1f 到 %3$.1f 秒；音高参考包含半音</string>
     <string name="detection_stop_elapsed">停止 · %1$.1f 秒</string>
+    <string name="detection_status_ready">准备就绪 · 开始监听后，哼唱或演奏单音。</string>
+    <string name="detection_status_listening">正在监听 · 停止后可查看、回放或保存。</string>
+    <string name="detection_status_replaying">正在合成回放 · 停止回放后才可监听。</string>
+    <string name="detection_status_saved">已保存至“记录 → 识音片段”，可以开始下一段。</string>
+    <string name="detection_status_draft">尚未保存 · 开始新片段前，可先查看或保存。</string>
+    <string name="detection_status_no_pitch">未采集到可信音高，请用清晰的人声或乐器单音重试。</string>
+    <string name="detection_help_show">识音使用说明</string>
+    <string name="detection_help_hide">收起识音说明</string>
+    <string name="detection_help_title">识音说明与数据保存</string>
     <string name="detection_limit_hint">单次最多 3 分钟，保留完整片段而非仅可见窗口。切后台会停止监听；未保存片段暂留内存，重新监听或关闭应用后丢弃。</string>
     <string name="detection_limit_reached">已到 3 分钟上限，监听已停止。可查看或保存完整片段。</string>
     <string name="detection_synthetic_hint">回放是合成音，不是原声录音；保留音符时长与静音。曲线辅助观察单音旋律，不可靠识别伴奏或和弦。</string>

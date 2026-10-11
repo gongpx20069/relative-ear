@@ -8,7 +8,7 @@
 
 Android **8.0 及以上**，支持简体中文与英文，默认跟随系统语言，无账号，训练与识音可离线使用。声音只在手机本地处理，不保存录音、不上传音频；手动检查更新时需要联网。
 
-> 当前为 `0.0.12` 早期版本。已实现下述基础功能，但尚未完成真机音准、延迟和机型兼容验证。正式安装包由 GitHub Actions 构建并发布到 Releases，以页面实际可下载资产为准。
+> 当前为 `0.0.13` 早期版本。已实现下述基础功能，但尚未完成真机音准、延迟和机型兼容验证。正式安装包由 GitHub Actions 构建并发布到 Releases，以页面实际可下载资产为准。
 
 ## 安装
 
@@ -24,7 +24,7 @@ Android **8.0 及以上**，支持简体中文与英文，默认跟随系统语�
 
 每个 APK 都是完整安装包，只需下载其中一个，不需要把多个架构包一起安装。以手机系统支持的架构为准，不能只看 CPU 是否为 64 位。Release 的 `SHA256SUMS.txt` 提供五个 APK 的文件校验值。
 
-当前 `0.0.12`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.12)。
+当前 `0.0.13`：[64 位 ARM 安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.13/relative-ear-0.0.13-arm64-v8a.apk) · [通用安装包](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.13/relative-ear-0.0.13-universal.apk) · [全部架构与校验文件](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.13)。
 
 1. 将 APK 下载到手机，点击安装。
 2. 如果系统提示不允许安装，给你正在使用的浏览器或文件管理器开启“允许安装未知应用”。
@@ -76,6 +76,8 @@ Android **8.0 及以上**，支持简体中文与英文，默认跟随系统语�
 ## 识音：观察周围的单音旋律
 
 实时音准区始终保留音名、读数和指示条的位置。无声或低置信度时显示占位与等待提示，并隐藏指示点，不再使下方按钮和白板随识别结果上下跳动。
+
+开始/停止、回放/停止回放、保存固定在底部操作区，浏览画布或展开详情时不必滚动寻找按钮，全屏同样可直接操作。简短提示区分监听中、未保存、回放中和已保存，不可用的操作会禁用；详细功能边界与数据保留说明放在可展开的 **识音使用说明** 中。
 
 1. 进入 **识音**，点击 **开始监听**。
 2. 哼唱，或让手机靠近只演奏一个音的乐器。

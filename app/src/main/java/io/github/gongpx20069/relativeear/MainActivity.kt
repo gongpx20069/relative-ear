@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -171,14 +172,17 @@ internal fun EarApp(model: EarViewModel) {
             ::microphoneAction, model::stopListening, model::replayDetected, model::stopReplay, model::saveDetection)
         return
     }
-    AppShell(state, model::select, model::reload) {
+    AppShell(state, model::select, model::reload, bottomActions = {
+        if (state.screen == Screen.LISTEN) ListeningActions(state, ::microphoneAction, model::stopListening,
+            model::replayDetected, model::stopReplay, model::saveDetection)
+    }) {
         when (state.screen) {
             Screen.SING, Screen.EAR -> TrainingPage(state, model::configure,
                 if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
                 model::replay, model::playReference, model::answer, model::interrupt)
             Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening,
                 model::replayDetected, model::stopReplay, model::saveDetection, model::detectionMode,
-                model::detectionNotation) { model.expandListening(true) }
+                model::detectionNotation, onExpand = { model.expandListening(true) }, showActions = false)
             Screen.PIANO -> PianoPage(state, model::previewNote, model::pianoVoice) { model.expandPiano(true) }
             Screen.HISTORY -> HistoryStudio(state, model)
             Screen.SETTINGS -> SettingsPage(state, model)
@@ -187,18 +191,24 @@ internal fun EarApp(model: EarViewModel) {
 }
 
 @Composable
-private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () -> Unit, content: @Composable () -> Unit) {
+internal fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () -> Unit,
+    bottomActions: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
     val labels = listOf(R.string.ear_tab, R.string.sing_tab, R.string.listen_tab, R.string.piano_tab,
         R.string.report_tab, R.string.settings_tab)
     val titles = listOf(R.string.ear_title, R.string.sing_title, R.string.listen_title, R.string.piano_page_title,
         R.string.history_title, R.string.settings_title)
     Scaffold(bottomBar = {
-        NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-            Screen.entries.forEachIndexed { index, screen ->
-                NavigationBarItem(selected = state.screen == screen,
-                    enabled = state.phase != Phase.SAVING,
-                    onClick = { if (state.screen != screen) onSelect(screen) },
-                    icon = { NavigationArtwork(screen) }, label = { Text(stringResource(labels[index])) })
+        Column {
+            if (state.screen == Screen.LISTEN) Surface(shadowElevation = 4.dp) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) { bottomActions() }
+            }
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+                Screen.entries.forEachIndexed { index, screen ->
+                    NavigationBarItem(selected = state.screen == screen,
+                        enabled = state.phase != Phase.SAVING,
+                        onClick = { if (state.screen != screen) onSelect(screen) },
+                        icon = { NavigationArtwork(screen) }, label = { Text(stringResource(labels[index])) })
+                }
             }
         }
     }) { padding ->

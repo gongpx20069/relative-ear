@@ -9,7 +9,7 @@ Windows PowerShell：
 ```powershell
 .\gradlew.bat :core:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:assembleDebugAndroidTest
 python -m unittest discover -s scripts -p "test_*.py"
-python scripts\github_api.py validate-version --tag v0.0.12
+python scripts\github_api.py validate-version --tag v0.0.13
 ```
 
 最后一条命令发布下一版本时应使用对应标签。
@@ -60,6 +60,8 @@ CI 的独立 `ui` 任务在 API 29 / 35 模拟器分别通过 adb 安装两个 A
 `0.0.12` 的 DetectionTakeTest 校验完整 180 秒仍保留开头音符、A4 与静音、最多 2,880,000 PCM 样本、当前未结束长音的快照、曲线-only/低置信度、96 ms 降采样断点及末帧、1 ms 异常密集帧/可信度切换仍不超过 6,000 点、非法数据，以及固定窗口每秒恒定 10% 位移和播放/浏览边界。DetectionStoreTest 在实际 SQLite 验证事务失败全部回滚、重复 ID 不覆盖、重开后浮点曲线/首尾静音/早期音符/A4 全量还原、参数化重命名、级联删除、不改成绩、成绩清空不删除片段，以及版本 2→3 additive migration；原版本 1 自动升级用例继续执行。
 
 DetectionStudioTest 使用合成监听帧和真实 AudioTrack：监听时切曲线、保存/回放互斥、90 秒片段保留开头、滑块/拖动画布、双显示与标签、手动保存/重复保存门禁、历史完整重载/重命名/回放停止/取消及确认删除、不改练习成绩；另校验 180 秒上限、取消覆盖提示、切页保留草稿和确认新监听。DetectionFullscreenTest 在真实 MainActivity 验证模式保持、横屏、导航隐藏及按钮/系统返回恢复，并使用真实 AudioTrack 确认全屏方向切换连续播放、曲线/原 A4 保留，而全屏中的语言切换仍停止音频。导出实时曲线、保存曲线和全屏截图。仪器测试不得运行两遍来拼截图或忽略失败。
+
+DetectionInteractionTest 在真实识音页确认底部开始/回放/保存无需滚动即可访问，展开/滚动使用说明不改变操作区位置，默认不铺开长说明，导出固定操作区截图。复用实际 AppShell 在 1/1.5/2 倍字体下检查监听、未保存、回放、已保存及无音高状态，验证按钮完整处于视窗内、可用性与回调匹配，不以编译成功替代仪器执行。
 
 `0.0.11` 的 PitchReadoutLayoutTest 对无音、稳定 C4/C5/A4、低置信度、丢失后恢复，分别在 1/1.5/2 倍字体下断言音准区边界和下方内容位置完全一致，并确认无音时不显示旧音名。文字区域按主题行高和字体缩放固定尺寸，不依赖不同文字的自然测量高度。现有 PCM 测试自动遍历六种音色，验证 C4–C5、三种 A4 调音下的实际音高、静音、长度、无削波和波形差异；存储测试遍历所有音色，全屏测试实际滚动选择新增音色并恢复退出路径。停止回放 fixture 使用 30 秒片段，避免放大的音准区增加滚动耗时后 8 秒片段在点击前结束，仍以实际按钮中断真实 AudioTrack 并断言未播完、停止后位置不再更新；独立的完整播放测试仍验证 2.56 秒真实时长。时间轴和分段行为不变。
 

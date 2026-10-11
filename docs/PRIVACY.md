@@ -1,6 +1,6 @@
 # 隐私说明
 
-本文件描述当前 `0.0.12` 的数据边界；操作说明见 [英文 README](../README.md) / [中文指南](../README.zh-CN.md)，技术细节见 [DEVELOPMENT](DEVELOPMENT.md)。
+本文件描述当前 `0.0.13` 的数据边界；操作说明见 [英文 README](../README.md) / [中文指南](../README.zh-CN.md)，技术细节见 [DEVELOPMENT](DEVELOPMENT.md)。
 
 ## 麦克风
 

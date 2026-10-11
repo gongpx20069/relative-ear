@@ -8,13 +8,13 @@
 
 Android **8.0+**. The app supports **English and Simplified Chinese**, following the system by default. Chinese button names are also included below. No account is required. Practice and audio processing work offline.
 
-> **0.0.12 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
+> **0.0.13 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
 ## Install
 
 Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
 
-**0.0.12:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.12)
+**0.0.13:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.13/relative-ear-0.0.13-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.13/relative-ear-0.0.13-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.13)
 
 | APK suffix | Choose it for |
 |---|---|
@@ -77,6 +77,8 @@ Use wired headphones when possible. Otherwise, wait until playback ends before s
 ## Live detection and synthesized replay
 
 The live pitch panel reserves the same space for its note, readout, and tuning gauge whether a stable pitch is detected or not. Silence and low-confidence input show a dash and a waiting message without moving the controls below; the gauge marker disappears rather than suggesting a valid pitch.
+
+Start/Stop, Replay/Stop replay, and Save stay in a bottom action area while you browse the canvas or expand details, including in fullscreen. A short status explains listening, unsaved, replaying, and saved states; unavailable actions remain disabled. **How to use detection** expands the detailed guide and data-retention information without cluttering the working area.
 
 1. Open **识音** and tap **开始监听**.
 2. Hum, or play a single note near the microphone.

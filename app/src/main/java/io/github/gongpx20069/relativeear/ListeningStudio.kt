@@ -4,11 +4,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +20,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,13 +42,17 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import io.github.gongpx20069.relativeear.core.AnswerNotation
 import io.github.gongpx20069.relativeear.core.DetectionTake
@@ -67,31 +74,63 @@ internal fun ListeningPage(
     state: UiState, onStart: () -> Unit, onStop: () -> Unit, onReplay: () -> Unit,
     onStopReplay: () -> Unit, onSave: () -> Unit = {}, onMode: (DetectionMode) -> Unit = {},
     onNotation: (AnswerNotation) -> Unit = {}, onExpand: () -> Unit = {},
+    showActions: Boolean = true,
 ) {
-    Text(stringResource(R.string.listen_intro), color = MaterialTheme.colorScheme.onSurfaceVariant)
     PitchReadout(state, includeCurve = false)
     DetectionCanvas(state.listeningTake, state.listeningClip, state, state.listeningId,
         onMode, onNotation, onExpand)
-    ListeningActions(state, onStart, onStop, onReplay, onStopReplay, onSave)
+    if (showActions) ListeningActions(state, onStart, onStop, onReplay, onStopReplay, onSave)
     DetectionNoteDetails(state.listeningClip, state.detectionNotation)
+    DetectionHelp()
 }
 
 @Composable
 internal fun ListeningActions(state: UiState, onStart: () -> Unit, onStop: () -> Unit,
     onReplay: () -> Unit, onStopReplay: () -> Unit, onSave: () -> Unit) {
     var replace by rememberSaveable { mutableStateOf(false) }
-    Button(onClick = {
-        if (state.phase == Phase.LISTENING) onStop()
-        else if (state.hasUnsavedDetection) replace = true else onStart()
-    }, enabled = state.loaded && state.phase in listOf(Phase.IDLE, Phase.LISTENING),
-        modifier = Modifier.fillMaxWidth()) {
-        Text(if (state.phase == Phase.LISTENING) stringResource(R.string.detection_stop_elapsed, state.listeningMs / 1000.0)
-            else stringResource(R.string.start_listening))
-    }
-    Text(stringResource(R.string.detection_limit_hint), style = MaterialTheme.typography.bodySmall)
-    ReplayControls(state, onReplay, onStopReplay)
-    OutlinedButton(onClick = onSave, enabled = state.canSaveDetection, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(if (state.listeningSaved) R.string.detection_saved else R.string.detection_save))
+    Column(Modifier.fillMaxWidth().testTag("detection-actions"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(when {
+            !state.loaded -> R.string.practice_loading
+            state.phase == Phase.LISTENING -> R.string.detection_status_listening
+            state.phase == Phase.REPLAYING -> R.string.detection_status_replaying
+            state.phase == Phase.SAVING -> R.string.saving
+            state.listeningSaved -> R.string.detection_status_saved
+            state.hasUnsavedDetection -> R.string.detection_status_draft
+            state.listeningMs > 0 -> R.string.detection_status_no_pitch
+            else -> R.string.detection_status_ready
+        }), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("detection-status")
+            .semantics { liveRegion = LiveRegionMode.Polite })
+        val start: @Composable (Modifier) -> Unit = { modifier ->
+            Button(onClick = {
+                if (state.phase == Phase.LISTENING) onStop()
+                else if (state.hasUnsavedDetection) replace = true else onStart()
+            }, enabled = state.loaded && state.phase in listOf(Phase.IDLE, Phase.LISTENING),
+                modifier = modifier.heightIn(min = 48.dp).testTag("detection-capture")) {
+                Text(if (state.phase == Phase.LISTENING)
+                    stringResource(R.string.detection_stop_elapsed, state.listeningMs / 1000.0)
+                    else stringResource(R.string.start_listening))
+            }
+        }
+        val replay: @Composable (Modifier) -> Unit = { modifier ->
+            ReplayButton(state, onReplay, onStopReplay, modifier)
+        }
+        val save: @Composable (Modifier) -> Unit = { modifier ->
+            OutlinedButton(onClick = onSave, enabled = state.canSaveDetection,
+                modifier = modifier.heightIn(min = 48.dp).testTag("detection-save")) {
+                Text(stringResource(if (state.listeningSaved) R.string.detection_saved else R.string.detection_save))
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val wide = maxWidth >= 600.dp && LocalDensity.current.fontScale <= 1.3f
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!wide) start(Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (wide) start(Modifier.weight(1f))
+                    replay(Modifier.weight(1f))
+                    save(Modifier.weight(1f))
+                }
+            }
+        }
     }
     if (replace) AlertDialog(onDismissRequest = { replace = false },
         title = { Text(stringResource(R.string.detection_new)) },
@@ -104,20 +143,31 @@ internal fun ListeningActions(state: UiState, onStart: () -> Unit, onStop: () ->
 
 @Composable
 internal fun ReplayControls(state: UiState, onReplay: () -> Unit, onStopReplay: () -> Unit) {
-    val clip = state.activeClip
-    Text(stringResource(R.string.melody_progress, state.replayPositionMs / 1000.0,
-        (clip?.durationMs ?: 0) / 1000.0), style = MaterialTheme.typography.bodySmall)
-    OutlinedButton(onClick = if (state.phase == Phase.REPLAYING) onStopReplay else onReplay,
-        enabled = state.canReplay || state.phase == Phase.REPLAYING, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(if (state.phase == Phase.REPLAYING) R.string.melody_stop else R.string.melody_replay))
-    }
-    val playing = state.demoNote
-    if (state.phase == Phase.REPLAYING) {
-        Text(stringResource(R.string.melody_playing,
-            if (playing == null) stringResource(R.string.melody_rest) else detectionPitchLabel(playing, state.detectionNotation)))
-    }
+    ReplayButton(state, onReplay, onStopReplay, Modifier.fillMaxWidth())
     Text(stringResource(R.string.detection_synthetic_hint), style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun ReplayButton(state: UiState, onReplay: () -> Unit, onStopReplay: () -> Unit, modifier: Modifier) {
+    OutlinedButton(onClick = if (state.phase == Phase.REPLAYING) onStopReplay else onReplay,
+        enabled = state.canReplay || state.phase == Phase.REPLAYING,
+        modifier = modifier.heightIn(min = 48.dp).testTag("detection-replay")) {
+        Text(stringResource(if (state.phase == Phase.REPLAYING) R.string.melody_stop else R.string.melody_replay))
+    }
+}
+
+@Composable
+private fun DetectionHelp() {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.testTag("detection-help")) {
+        Text(stringResource(if (expanded) R.string.detection_help_hide else R.string.detection_help_show))
+    }
+    if (expanded) SectionCard(stringResource(R.string.detection_help_title)) {
+        Text(stringResource(R.string.listen_intro))
+        Text(stringResource(R.string.detection_limit_hint))
+        Text(stringResource(R.string.detection_synthetic_hint))
+    }
 }
 
 @Composable
@@ -125,21 +175,32 @@ internal fun DetectionFullscreen(state: UiState, onMode: (DetectionMode) -> Unit
     onNotation: (AnswerNotation) -> Unit, onExit: () -> Unit, onStart: () -> Unit, onStop: () -> Unit,
     onReplay: () -> Unit, onStopReplay: () -> Unit, onSave: () -> Unit) {
     val history = state.screen == Screen.HISTORY
-    Column(Modifier.fillMaxSize().testTag("detection-fullscreen").verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetectionCanvas(if (history) state.savedDetection?.take else state.listeningTake,
-            state.activeClip, state, if (history) state.selectedDetection?.id else state.listeningId,
-            onMode, onNotation, onExit, expanded = true)
-        state.message?.let { Text(it.localized(), color = MaterialTheme.colorScheme.error) }
-        if (history) ReplayControls(state, onReplay, onStopReplay)
-        else ListeningActions(state, onStart, onStop, onReplay, onStopReplay, onSave)
+    Column(Modifier.fillMaxSize().testTag("detection-fullscreen")) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val timelineHeight = (maxHeight - 132.dp).coerceAtLeast(110.dp)
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                DetectionCanvas(if (history) state.savedDetection?.take else state.listeningTake,
+                    state.activeClip, state, if (history) state.selectedDetection?.id else state.listeningId,
+                    onMode, onNotation, onExit, expanded = true, timelineHeight = timelineHeight)
+                state.message?.let { Text(it.localized(), color = MaterialTheme.colorScheme.error) }
+                DetectionHelp()
+            }
+        }
+        Surface(shadowElevation = 4.dp) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (history) ReplayButton(state, onReplay, onStopReplay, Modifier.fillMaxWidth())
+                else ListeningActions(state, onStart, onStop, onReplay, onStopReplay, onSave)
+            }
+        }
     }
 }
 
 @Composable
 internal fun DetectionCanvas(take: DetectionTake?, clip: MelodyClip?, state: UiState, identity: String?,
     onMode: (DetectionMode) -> Unit, onNotation: (AnswerNotation) -> Unit,
-    onExpand: () -> Unit, expanded: Boolean = false) {
+    onExpand: () -> Unit, expanded: Boolean = false, timelineHeight: Dp? = null) {
     var reviewStart by rememberSaveable(identity) { mutableFloatStateOf(0f) }
     val listening = state.screen == Screen.LISTEN && state.phase == Phase.LISTENING
     val replaying = state.phase == Phase.REPLAYING
@@ -172,13 +233,20 @@ internal fun DetectionCanvas(take: DetectionTake?, clip: MelodyClip?, state: UiS
         }
         if (!expanded) Text(stringResource(R.string.detection_window_hint), style = MaterialTheme.typography.bodySmall)
         PitchTimeline(take, clip, state.detectionMode, state.detectionNotation, window,
-            state.replayPositionMs, replaying, listening, expanded,
+            state.replayPositionMs, replaying, listening, expanded, timelineHeight,
             onPan = { delta -> reviewStart = (reviewStart + delta).coerceIn(0f, (duration - TimelineWindow.WIDTH_MS).coerceAtLeast(0).toFloat()) })
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(stringResource(R.string.melody_seconds, window.startMs.coerceAtLeast(0) / 1000.0),
                 style = MaterialTheme.typography.labelSmall)
             Text(stringResource(R.string.melody_seconds, minOf(window.endMs, duration).coerceAtLeast(0) / 1000.0),
                 style = MaterialTheme.typography.labelSmall)
+        }
+        if (replaying) {
+            Text(stringResource(R.string.melody_progress, state.replayPositionMs / 1000.0,
+                duration / 1000.0), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.melody_playing, state.demoNote?.let {
+                detectionPitchLabel(it, state.detectionNotation)
+            } ?: stringResource(R.string.melody_rest)), style = MaterialTheme.typography.bodySmall)
         }
         if (!listening && duration > TimelineWindow.WIDTH_MS) {
             Text(stringResource(R.string.detection_seek), style = MaterialTheme.typography.labelMedium)
@@ -206,7 +274,7 @@ private fun DetectionNotationChips(state: UiState, onNotation: (AnswerNotation) 
 @Composable
 private fun PitchTimeline(take: DetectionTake?, clip: MelodyClip?, mode: DetectionMode,
     notation: AnswerNotation, window: TimelineWindow, positionMs: Long, replaying: Boolean,
-    listening: Boolean, expanded: Boolean, onPan: (Float) -> Unit) {
+    listening: Boolean, expanded: Boolean, timelineHeight: Dp?, onPan: (Float) -> Unit) {
     val names = stringArrayResource(R.array.chromatic_solfege_names)
     fun label(midi: Int) = if (notation == AnswerNotation.NOTE_NAME) Music.name(midi)
         else "${names[Math.floorMod(midi, 12)]} ${Music.name(midi)}"
@@ -220,7 +288,8 @@ private fun PitchTimeline(take: DetectionTake?, clip: MelodyClip?, mode: Detecti
         window.startMs.coerceAtLeast(0) / 1000.0, window.endMs.coerceAtLeast(0) / 1000.0)
     val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val currentOnPan by rememberUpdatedState(onPan)
-    val chartHeight = if (expanded) (LocalConfiguration.current.screenHeightDp - 200).coerceAtLeast(110).dp else 250.dp
+    val chartHeight = timelineHeight ?: if (expanded)
+        (LocalConfiguration.current.screenHeightDp - 200).coerceAtLeast(110).dp else 250.dp
     Canvas(Modifier.fillMaxWidth().height(chartHeight).testTag("melody-timeline")
         .semantics {
             contentDescription = description

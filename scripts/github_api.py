@@ -164,6 +164,8 @@ def publish_release(client, tag, apk_directory):
                  "Manual detection-clip history stores notes, downsampled pitch trajectories, time and original tuning, "
                  "separately from scores, with complete replay, rename and confirmed deletion. "
                  "Unsaved replacement requires confirmation; no original microphone recording is saved. "
+                 "Detection capture, replay and save actions remain reachable in a fixed bottom area, "
+                 "including fullscreen, with contextual state guidance and a collapsible help section. "
                  "User guides are split into an English-default README and a separate Simplified Chinese page; "
                  "the app UI supports English and Simplified Chinese, following the system by default, "
                  "with saved manual language selection in Settings and Android 13+ app-language integration. "

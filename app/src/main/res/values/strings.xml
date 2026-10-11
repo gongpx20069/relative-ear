@@ -78,6 +78,15 @@
     <string name="detection_seek">Browse the full clip</string>
     <string name="detection_canvas_description">%1$s timeline, showing %2$.1f to %3$.1f seconds; pitch references include chromatic notes</string>
     <string name="detection_stop_elapsed">Stop · %1$.1f s</string>
+    <string name="detection_status_ready">Ready · Start listening, then hum or play a single note.</string>
+    <string name="detection_status_listening">Listening · Stop to review, replay or save.</string>
+    <string name="detection_status_replaying">Replaying synthesized notes · Stop replay before listening.</string>
+    <string name="detection_status_saved">Saved in History → Detection clips. You can start another clip.</string>
+    <string name="detection_status_draft">Not saved · Review or save this clip before starting again.</string>
+    <string name="detection_status_no_pitch">No reliable pitch captured. Try a clear single voice or instrument.</string>
+    <string name="detection_help_show">How to use detection</string>
+    <string name="detection_help_hide">Hide detection guide</string>
+    <string name="detection_help_title">Detection guide and data</string>
     <string name="detection_limit_hint">Up to 3 minutes per clip. The full clip is retained, not just the visible window. Backgrounding stops listening; an unsaved clip stays in memory until replaced or the app closes.</string>
     <string name="detection_limit_reached">Reached the 3-minute limit. Listening stopped; review or save the complete clip.</string>
     <string name="detection_synthetic_hint">Replay uses synthesized notes, not the original recording. Silence and note durations are preserved. Curves help inspect single-note melodies, not transcribe accompaniment or chords.</string>

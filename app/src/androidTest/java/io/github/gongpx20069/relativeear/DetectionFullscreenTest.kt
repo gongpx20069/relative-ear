@@ -41,6 +41,9 @@ class DetectionFullscreenTest {
                 compose.onAllNodesWithTag("detection-fullscreen").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("History").assertDoesNotExist()
+        compose.onNodeWithTag("detection-capture").assertIsDisplayed()
+        compose.onNodeWithTag("detection-replay").assertIsDisplayed()
+        compose.onNodeWithTag("detection-save").assertIsDisplayed()
         compose.onNodeWithTag("detection-mode-CURVE").assertIsSelected()
         compose.onNodeWithTag("detection-mode-NOTES").performClick().assertIsSelected()
         compose.onNodeWithTag("melody-timeline").performScrollTo().assertIsDisplayed()
@@ -97,6 +100,7 @@ class DetectionFullscreenTest {
                     compose.onAllNodesWithTag("detection-fullscreen").fetchSemanticsNodes().isNotEmpty()
             }
             assertEquals(Phase.REPLAYING, model.state.value.phase)
+            compose.onNodeWithTag("detection-replay").assertIsDisplayed()
             assertEquals(take, model.state.value.savedDetection?.take)
             val position = model.state.value.replayPositionMs
             compose.waitUntil(10_000) { model.state.value.replayPositionMs > position + 200 }

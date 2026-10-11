@@ -41,7 +41,12 @@ class DetectionRecorder(private val a4: Double) {
         val point = PitchPoint(time, midi, frame.confidence)
         val previous = sampled.lastOrNull()
         if (previous == null || time - previous.timeMs >= 96 || (previous.midi == null) != (midi == null)) {
-            sampled.add(point)
+            if (previous == null || time - previous.timeMs >= 32) {
+                sampled.add(point)
+            } else if (midi == null && previous.midi != null) {
+                // Short device reads must not create an unbounded number of gap markers.
+                sampled[sampled.lastIndex] = previous.copy(midi = null, confidence = point.confidence)
+            }
         }
         last = point
         return time < MelodyClip.MAX_DURATION_MS

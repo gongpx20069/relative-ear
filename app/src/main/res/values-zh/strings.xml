@@ -187,7 +187,7 @@
     <string name="range_hint">练习音库：C4–C5 自然音。实时检测范围约 65–1000 Hz。</string>
     <string name="privacy">原始声音不保存、不上传。点击保存才会在本机保存识音音符与降采样曲线，识音片段与练习成绩分开，删除练习记录不会删除片段。离开识音页或切后台会停止监听。仅手动检查更新会联网查询 GitHub。</string>
     <string name="clear_data">删除全部训练记录</string>
-    <string name="clear_confirm">删除全部记录？此操作不可撤销。</string>
+    <string name="clear_confirm">删除全部练习成绩？识音片段与设置会保留。此操作不可撤销。</string>
     <string name="delete">删除</string>
     <string name="cancel">取消</string>
     <string name="empty_history">还没有训练记录。完成听辨或回唱后会自动保存。</string>

@@ -76,4 +76,17 @@ class DetectionTakeTest {
             DetectionTake(MelodyClip(emptyList(), 1000), listOf(PitchPoint(128, null, 0.0), PitchPoint(128, null, 0.0)))
         }
     }
+
+    @Test fun unusuallyFastFramesAndRapidConfidenceChangesStillHaveBoundedTrajectoryMemory() {
+        val recorder = DetectionRecorder(440.0)
+        for (time in 128L..180_000L) {
+            val voiced = time % 2 == 0L
+            recorder.accept(PitchFrame(time, if (voiced) 440.0 else null, if (voiced) 0.99 else 0.0, 0.1))
+        }
+        val take = recorder.snapshot()
+        assertTrue(take.points.size <= DetectionTake.MAX_POINTS)
+        assertTrue(take.points.any { it.midi == null })
+        assertEquals(180_000L, take.points.last().timeMs)
+        assertTrue(take.clip.notes.isEmpty())
+    }
 }

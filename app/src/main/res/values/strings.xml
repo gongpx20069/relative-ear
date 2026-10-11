@@ -221,7 +221,7 @@
     <string name="range_hint">Training notes: C4–C5 natural notes. Detection covers about 65–1000 Hz.</string>
     <string name="privacy">Original audio is never saved or uploaded. Detection clips save only note events and a downsampled pitch curve when you tap Save. Practice history is separate; deleting practice scores does not delete clips. Backgrounding or leaving detection stops listening. Only a manual update check contacts GitHub.</string>
     <string name="clear_data">Delete all practice history</string>
-    <string name="clear_confirm">Delete all history? This cannot be undone.</string>
+    <string name="clear_confirm">Delete all practice scores? Detection clips and settings will be kept. This cannot be undone.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="empty_history">No practice history yet. Listening and singing answers are saved automatically.</string>

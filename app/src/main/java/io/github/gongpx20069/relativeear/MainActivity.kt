@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -401,14 +402,21 @@ internal fun PitchReadout(state: UiState, includeCurve: Boolean = true) {
                 if (state.screen == Screen.SING && question != null) question.target else midi,
                 state.screen == Screen.SING && state.settings.ignoreOctave)
         } else null
+        val density = LocalDensity.current
+        val noteHeight = with(density) { MaterialTheme.typography.headlineLarge.lineHeight.toDp() + 8.sp.toDp() }
+        val readoutHeight = with(density) { MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 + 8.sp.toDp() }
         Column(Modifier.fillMaxWidth().testTag("pitch-readout-body"),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(midi?.let(Music::name) ?: "—", style = MaterialTheme.typography.headlineLarge,
-                maxLines = 1)
-            Text(if (midi != null && cents != null)
-                stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents)
-                else stringResource(R.string.no_pitch),
-                minLines = 2, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.fillMaxWidth().height(noteHeight), contentAlignment = Alignment.CenterStart) {
+                Text(midi?.let(Music::name) ?: "—", style = MaterialTheme.typography.headlineLarge,
+                    maxLines = 1)
+            }
+            Box(Modifier.fillMaxWidth().height(readoutHeight), contentAlignment = Alignment.CenterStart) {
+                Text(if (midi != null && cents != null)
+                    stringResource(R.string.pitch_readout, Music.name(midi), frequency, cents)
+                    else stringResource(R.string.no_pitch), style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             val gaugeDescription = if (cents != null) stringResource(R.string.tuning_description, cents)
                 else stringResource(R.string.no_pitch)
             val primary = MaterialTheme.colorScheme.primary

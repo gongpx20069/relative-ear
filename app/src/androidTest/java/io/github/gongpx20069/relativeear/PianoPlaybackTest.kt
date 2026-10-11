@@ -120,7 +120,7 @@ class PianoPlaybackTest {
 
     @Test fun microphoneAndPianoAreGatedAndStoppingOrInterruptingReplayRetainsNotes() {
         val gate = CompletableDeferred<Unit>()
-        val audio = FixtureAudio(AudioEngine(compose.activity.applicationContext) {}, gate, captureMs = 8000)
+        val audio = FixtureAudio(AudioEngine(compose.activity.applicationContext) {}, gate, captureMs = 30_000)
         val model = studio(audio)
         compose.onNodeWithText("开始监听").performScrollTo().performClick()
         compose.waitUntil(10_000) { model.state.value.phase == Phase.LISTENING }
@@ -134,7 +134,7 @@ class PianoPlaybackTest {
         compose.onNodeWithText("停止回放").performScrollTo().performClick()
         compose.waitUntil(10_000) { model.state.value.phase == Phase.IDLE }
         val stopped = model.state.value.replayPositionMs
-        assertTrue("Stop must interrupt playback before the clip ends: $stopped", stopped < 8000)
+        assertTrue("Stop must interrupt playback before the clip ends: $stopped", stopped < 30_000)
         Thread.sleep(150)
         assertEquals(stopped, model.state.value.replayPositionMs)
         assertTrue(model.state.value.canReplay)

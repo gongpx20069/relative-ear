@@ -131,7 +131,10 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
     }
     override fun onStop() {
-        if (!isChangingConfigurations || !detectionOrientationChange) model.interrupt()
+        val detectionRotation = isChangingConfigurations && detectionOrientationChange &&
+            changingConfigurations and ActivityInfo.CONFIG_ORIENTATION != 0 &&
+            changingConfigurations and ActivityInfo.CONFIG_LOCALE == 0
+        if (!detectionRotation) model.interrupt()
         super.onStop()
     }
 }

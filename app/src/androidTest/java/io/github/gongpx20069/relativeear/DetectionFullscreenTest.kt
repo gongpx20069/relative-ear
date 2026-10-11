@@ -14,6 +14,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.ViewModelProvider
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import io.github.gongpx20069.relativeear.core.DetectionTake
 import io.github.gongpx20069.relativeear.core.MelodyClip
 import io.github.gongpx20069.relativeear.core.NoteEvent
@@ -107,9 +109,18 @@ class DetectionFullscreenTest {
             compose.onNodeWithTag("detection-expand").performScrollTo().performClick()
             compose.waitUntil(15_000) { compose.activity.resources.configuration.orientation == original }
             assertEquals(Phase.REPLAYING, model.state.value.phase)
-            compose.onNodeWithText("Stop replay").performScrollTo().performClick()
-            compose.waitUntil(10_000) { model.state.value.phase == Phase.IDLE }
+            compose.onNodeWithTag("detection-expand").performScrollTo().performClick()
+            compose.waitUntil(15_000) { compose.activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE }
+            assertEquals(Phase.REPLAYING, model.state.value.phase)
+            compose.runOnIdle { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("zh-Hans")) }
+            compose.waitUntil(15_000) {
+                compose.activity.resources.configuration.locales[0].language == "zh" &&
+                    model.state.value.phase == Phase.IDLE
+            }
+            assertEquals(take, model.state.value.savedDetection?.take)
             assertEquals(415.0, model.state.value.activeClip!!.a4, 0.0)
+            compose.onNodeWithTag("detection-expand").performScrollTo().performClick()
+            compose.waitUntil(15_000) { compose.activity.resources.configuration.orientation == original }
         } finally {
             compose.runOnIdle { model.interrupt(); model.expandListening(false) }
             HistoryStore(compose.activity).use { it.deleteDetection(id) }

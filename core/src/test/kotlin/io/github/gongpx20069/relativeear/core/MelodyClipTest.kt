@@ -54,7 +54,7 @@ class MelodyClipTest {
 
     @Test fun silenceIsNotInventedAsAPitchedNoteAndInvalidTimelinesAreRejected() {
         assertTrue(ToneSynthesis.render(MelodyClip(emptyList(), 1000)).all { it == 0.toShort() })
-        assertThrows(IllegalArgumentException::class.java) { MelodyClip(emptyList(), 60_001) }
+        assertThrows(IllegalArgumentException::class.java) { MelodyClip(emptyList(), 180_001) }
         assertThrows(IllegalArgumentException::class.java) { MelodyClip(emptyList(), 0) }
         assertThrows(IllegalArgumentException::class.java) { MelodyClip(emptyList(), 1000, Double.NaN) }
         assertThrows(IllegalArgumentException::class.java) {

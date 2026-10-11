@@ -89,6 +89,7 @@ import io.github.gongpx20069.relativeear.core.TrainingSetup
 class MainActivity : AppCompatActivity() {
     private val model: EarViewModel by viewModels()
     private var pianoPreviousOrientation: Int? = null
+    private var detectionOrientationChange = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.containsKey("pianoPreviousOrientation") == true) {
@@ -101,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         setContent { EarTheme { EarApp(model) } }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                model.state.map { it.screen == Screen.PIANO && it.pianoExpanded }
+                model.state.map { (it.screen == Screen.PIANO && it.pianoExpanded) || it.listeningExpanded }
                     .distinctUntilChanged().collect { expanded ->
                         val controller = WindowCompat.getInsetsController(window, window.decorView)
                         if (expanded) {
@@ -109,13 +110,17 @@ class MainActivity : AppCompatActivity() {
                             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                             controller.hide(WindowInsetsCompat.Type.systemBars())
                             if (requestedOrientation != ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE) {
+                                detectionOrientationChange = model.state.value.listeningExpanded
                                 requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                             }
                         } else {
                             controller.show(WindowInsetsCompat.Type.systemBars())
                             val previous = pianoPreviousOrientation
                             pianoPreviousOrientation = null
-                            if (previous != null && requestedOrientation != previous) requestedOrientation = previous
+                            if (previous != null && requestedOrientation != previous) {
+                                detectionOrientationChange = model.state.value.screen in listOf(Screen.LISTEN, Screen.HISTORY)
+                                requestedOrientation = previous
+                            }
                         }
                     }
             }
@@ -126,13 +131,13 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
     }
     override fun onStop() {
-        model.interrupt()
+        if (!isChangingConfigurations || !detectionOrientationChange) model.interrupt()
         super.onStop()
     }
 }
 
 @Composable
-private fun EarApp(model: EarViewModel) {
+internal fun EarApp(model: EarViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     BackHandler(enabled = state.screen == Screen.PIANO && state.pianoExpanded) { model.expandPiano(false) }
@@ -146,16 +151,22 @@ private fun EarApp(model: EarViewModel) {
         pendingScreen = null
         if (requested == model.state.value.screen) {
             if (!granted) model.permissionDenied()
-            else if (requested == Screen.LISTEN) model.listen() else model.startQuestion()
+            else if (requested == Screen.LISTEN) model.listen(discardUnsaved = true) else model.startQuestion()
         }
     }
     fun microphoneAction() {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            if (state.screen == Screen.LISTEN) model.listen() else model.startQuestion()
+            if (state.screen == Screen.LISTEN) model.listen(discardUnsaved = true) else model.startQuestion()
         } else {
             pendingScreen = state.screen
             permission.launch(Manifest.permission.RECORD_AUDIO)
         }
+    }
+    BackHandler(enabled = state.listeningExpanded) { model.expandListening(false) }
+    if (state.listeningExpanded) {
+        DetectionFullscreen(state, model::detectionMode, model::detectionNotation, { model.expandListening(false) },
+            ::microphoneAction, model::stopListening, model::replayDetected, model::stopReplay, model::saveDetection)
+        return
     }
     AppShell(state, model::select, model::reload) {
         when (state.screen) {
@@ -163,9 +174,10 @@ private fun EarApp(model: EarViewModel) {
                 if (state.screen == Screen.SING) ::microphoneAction else model::startQuestion,
                 model::replay, model::playReference, model::answer, model::interrupt)
             Screen.LISTEN -> ListeningPage(state, ::microphoneAction, model::stopListening,
-                model::replayDetected, model::stopReplay)
+                model::replayDetected, model::stopReplay, model::saveDetection, model::detectionMode,
+                model::detectionNotation) { model.expandListening(true) }
             Screen.PIANO -> PianoPage(state, model::previewNote, model::pianoVoice) { model.expandPiano(true) }
-            Screen.HISTORY -> HistoryPage(state, model::openPractice, model::closePractice)
+            Screen.HISTORY -> HistoryStudio(state, model)
             Screen.SETTINGS -> SettingsPage(state, model)
         }
     }
@@ -187,7 +199,7 @@ private fun AppShell(state: UiState, onSelect: (Screen) -> Unit, onReload: () ->
             }
         }
     }) { padding ->
-        val scroll = key(state.screen, state.selectedPractice?.session, state.selectedPractice?.mode) {
+        val scroll = key(state.screen, state.selectedPractice?.session, state.selectedPractice?.mode, state.selectedDetection?.id) {
             rememberScrollState()
         }
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll).padding(20.dp),
@@ -408,7 +420,9 @@ internal fun PitchReadout(state: UiState, includeCurve: Boolean = true) {
         Column(Modifier.fillMaxWidth().testTag("pitch-readout-body"),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Box(Modifier.fillMaxWidth().height(noteHeight), contentAlignment = Alignment.CenterStart) {
-                Text(midi?.let(Music::name) ?: "—", style = MaterialTheme.typography.headlineLarge,
+                Text(if (midi == null) "—" else if (state.screen == Screen.LISTEN)
+                    detectionPitchLabel(midi, state.detectionNotation) else Music.name(midi),
+                    style = MaterialTheme.typography.headlineLarge,
                     maxLines = 1)
             }
             Box(Modifier.fillMaxWidth().height(readoutHeight), contentAlignment = Alignment.CenterStart) {

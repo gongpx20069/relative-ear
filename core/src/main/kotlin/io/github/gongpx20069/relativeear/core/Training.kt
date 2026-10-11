@@ -90,6 +90,10 @@ class NoteSegmenter(private val a4: Double = 440.0) {
 
     fun flush(): NoteEvent? = finish(lastValid + 32)
 
+    fun current(elapsedMs: Long): NoteEvent? = active?.let {
+        NoteEvent(it, start, (minOf(lastValid + 32, elapsedMs) - start).coerceAtLeast(0))
+    }?.takeIf { it.durationMs >= 96 }
+
     private fun finish(end: Long): NoteEvent? {
         val note = active
         active = null

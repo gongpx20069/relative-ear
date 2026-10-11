@@ -9,7 +9,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.gongpx20069.relativeear.core.Music
 import io.github.gongpx20069.relativeear.core.NoteEvent
-import io.github.gongpx20069.relativeear.core.NoteSegmenter
+import io.github.gongpx20069.relativeear.core.DetectionRecorder
+import io.github.gongpx20069.relativeear.core.DetectionTake
 import io.github.gongpx20069.relativeear.core.PitchFrame
 import io.github.gongpx20069.relativeear.core.AnswerNotation
 import io.github.gongpx20069.relativeear.core.FixedTraining
@@ -38,6 +39,8 @@ import java.util.UUID
 
 enum class Screen { EAR, SING, LISTEN, PIANO, HISTORY, SETTINGS }
 enum class Phase { IDLE, DEMONSTRATING, PLAYING, ANSWERING, LISTENING, REPLAYING, SAVING, FEEDBACK, COMPLETE }
+enum class DetectionMode { NOTES, CURVE }
+enum class HistorySection { PRACTICES, DETECTIONS }
 data class UpdateState(
     val checking: Boolean = false, val checked: Boolean = false, val available: AppUpdate? = null,
     val prompt: Boolean = false, val error: UiMessage? = null,
@@ -62,6 +65,18 @@ data class UiState(
     val notes: List<NoteEvent> = emptyList(),
     val listeningMs: Long = 0,
     val replayPositionMs: Long = 0,
+    val listeningTake: DetectionTake? = null,
+    val listeningId: String? = null,
+    val listeningStartedMs: Long = 0,
+    val listeningSaved: Boolean = false,
+    val listeningExpanded: Boolean = false,
+    val detectionMode: DetectionMode = DetectionMode.NOTES,
+    val detectionNotation: AnswerNotation = AnswerNotation.SOLFEGE,
+    val historySection: HistorySection = HistorySection.PRACTICES,
+    val detections: List<DetectionSummary> = emptyList(),
+    val selectedDetection: DetectionSummary? = null,
+    val savedDetection: SavedDetection? = null,
+    val detectionLoading: Boolean = false,
     val result: SingingResult? = null,
     val message: UiMessage? = null,
     val history: History = History(),
@@ -75,9 +90,14 @@ data class UiState(
     val canHearAnswer: Boolean get() = question != null && phase in listOf(Phase.FEEDBACK, Phase.COMPLETE)
     val canPreview: Boolean get() = loaded && screen == Screen.PIANO && (phase in listOf(Phase.IDLE, Phase.COMPLETE) ||
         (phase == Phase.DEMONSTRATING && pianoNote != null))
-    val listeningClip: MelodyClip? get() = if (listeningMs > 0) MelodyClip.recent(notes, listeningMs, settings.a4.toDouble()) else null
-    val canReplay: Boolean get() = loaded && screen == Screen.LISTEN && phase == Phase.IDLE &&
-        listeningClip?.notes?.isNotEmpty() == true
+    val listeningClip: MelodyClip? get() = listeningTake?.clip ?: if (listeningMs > 0)
+        MelodyClip(notes, listeningMs, settings.a4.toDouble()) else null
+    val activeClip: MelodyClip? get() = if (screen == Screen.HISTORY) savedDetection?.take?.clip else listeningClip
+    val hasUnsavedDetection: Boolean get() = listeningTake?.hasPitch == true && !listeningSaved
+    val canSaveDetection: Boolean get() = loaded && screen == Screen.LISTEN && phase == Phase.IDLE && hasUnsavedDetection
+    val canReplay: Boolean get() = loaded && (screen == Screen.LISTEN ||
+        (screen == Screen.HISTORY && selectedDetection != null && !detectionLoading)) && phase == Phase.IDLE &&
+        activeClip?.notes?.isNotEmpty() == true
 }
 
 class EarViewModel @JvmOverloads constructor(
@@ -104,8 +124,9 @@ class EarViewModel @JvmOverloads constructor(
                 val training = store.training()
                 val pianoVoice = store.pianoVoice()
                 val history = store.history()
+                val detections = store.detections()
                 mutable.update { it.copy(settings = settings, training = training, pianoVoice = pianoVoice,
-                    history = history, loaded = true) }
+                    history = history, detections = detections, loaded = true) }
             }
         }
     }
@@ -131,9 +152,10 @@ class EarViewModel @JvmOverloads constructor(
             audioJob = null
             mutable.update {
                 it.copy(screen = screen, phase = Phase.IDLE, question = null, frame = null, result = null,
-                    curve = emptyList(), notes = emptyList(), message = null, count = 0, answered = 0, correct = 0,
-                    demoNote = null, pianoNote = null, pianoExpanded = false, listeningMs = 0, replayPositionMs = 0,
-                    selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false)
+                    curve = emptyList(), message = null, count = 0, answered = 0, correct = 0,
+                    demoNote = null, pianoNote = null, pianoExpanded = false, listeningExpanded = false, replayPositionMs = 0,
+                    selectedPractice = null, practiceAttempts = emptyList(), practiceLoading = false,
+                    selectedDetection = null, savedDetection = null, detectionLoading = false)
             }
         }
     }
@@ -141,6 +163,14 @@ class EarViewModel @JvmOverloads constructor(
         if (state.value.screen != Screen.PIANO || !state.value.loaded) return
         mutable.update { it.copy(pianoExpanded = expanded) }
     }
+    fun expandListening(expanded: Boolean) {
+        val snapshot = state.value
+        if (!snapshot.loaded || (snapshot.screen != Screen.LISTEN &&
+            !(snapshot.screen == Screen.HISTORY && snapshot.savedDetection != null))) return
+        mutable.update { it.copy(listeningExpanded = expanded) }
+    }
+    fun detectionMode(mode: DetectionMode) { mutable.update { it.copy(detectionMode = mode) } }
+    fun detectionNotation(notation: AnswerNotation) { mutable.update { it.copy(detectionNotation = notation) } }
     fun pianoVoice(voice: ToneVoice) {
         val snapshot = state.value
         if (!snapshot.canPreview || snapshot.pianoVoiceSaving || snapshot.pianoVoice == voice) return
@@ -328,40 +358,38 @@ class EarViewModel @JvmOverloads constructor(
         }
         if (!saved) mutable.update { it.copy(phase = if (it.count >= 10) Phase.COMPLETE else Phase.FEEDBACK) }
     }
-    fun listen() {
+    fun listen(discardUnsaved: Boolean = false) {
         val snapshot = state.value
         if (!snapshot.loaded || snapshot.screen != Screen.LISTEN || snapshot.phase != Phase.IDLE || audioJob?.isActive == true) return
+        if (snapshot.hasUnsavedDetection && !discardUnsaved) {
+            mutable.update { it.copy(message = text(R.string.detection_replace_warning)) }
+            return
+        }
         val settings = state.value.settings
         mutable.update { it.copy(phase = Phase.LISTENING, frame = null, curve = emptyList(), notes = emptyList(),
-            listeningMs = 0, replayPositionMs = 0, demoNote = null, pianoNote = null, message = null) }
+            listeningMs = 0, listeningTake = null, listeningId = UUID.randomUUID().toString(),
+            listeningStartedMs = System.currentTimeMillis(), listeningSaved = false,
+            replayPositionMs = 0, demoNote = null, pianoNote = null, message = null) }
         launchAudio {
-            val segmenter = NoteSegmenter(settings.a4.toDouble())
-            try {
-                audio.capture { frame ->
-                    showFrame(frame)
-                    segmenter.accept(frame)?.let { note ->
-                        rememberNote(note)
-                    }
-                    true
-                }
-            } finally {
-                segmenter.flush()?.let { note ->
-                    rememberNote(note)
-                }
+            val recorder = DetectionRecorder(settings.a4.toDouble())
+            val since = SystemClock.elapsedRealtime()
+            audio.capture(MelodyClip.MAX_DURATION_MS) { frame ->
+                val continuing = recorder.accept(frame)
+                val take = recorder.snapshot()
+                mutable.update { it.copy(frame = frame, listeningTake = take,
+                    listeningMs = take.clip.durationMs, notes = take.clip.notes) }
+                continuing
             }
-            mutable.update { it.copy(phase = Phase.IDLE, frame = null) }
-        }
-    }
-    private fun rememberNote(note: NoteEvent) {
-        mutable.update {
-            val origin = (it.listeningMs - MelodyClip.WINDOW_MS).coerceAtLeast(0)
-            it.copy(notes = (it.notes + note).filter { event -> event.startMs + event.durationMs > origin })
+            mutable.update { it.copy(phase = Phase.IDLE, frame = null, message =
+                if (it.listeningMs >= MelodyClip.MAX_DURATION_MS ||
+                    SystemClock.elapsedRealtime() - since >= MelodyClip.MAX_DURATION_MS)
+                    text(R.string.detection_limit_reached) else null) }
         }
     }
     fun replayDetected() {
         val snapshot = state.value
         if (!snapshot.canReplay || audioJob?.isActive == true) return
-        val clip = checkNotNull(snapshot.listeningClip)
+        val clip = checkNotNull(snapshot.activeClip)
         mutable.update { it.copy(phase = Phase.REPLAYING, replayPositionMs = 0, demoNote = null, frame = null, message = null) }
         launchAudio {
             audio.playMelody(clip) { position ->
@@ -379,6 +407,7 @@ class EarViewModel @JvmOverloads constructor(
         }
     }
     fun stopListening() {
+        if (state.value.screen != Screen.LISTEN || state.value.phase != Phase.LISTENING) return
         viewModelScope.launch {
             audioJob?.cancelAndJoin()
             audioJob = null
@@ -387,12 +416,97 @@ class EarViewModel @JvmOverloads constructor(
     }
     private fun showFrame(frame: PitchFrame) {
         mutable.update {
-            val listening = it.screen == Screen.LISTEN
-            val window = if (listening) MelodyClip.WINDOW_MS else 10_000L
-            val origin = (frame.timeMs - window).coerceAtLeast(0)
-            it.copy(frame = frame, listeningMs = if (listening) frame.timeMs else it.listeningMs,
-                notes = if (listening) it.notes.filter { note -> note.startMs + note.durationMs > origin } else it.notes,
-                curve = (it.curve + frame).filter { old -> old.timeMs >= origin }.takeLast(if (listening) 2000 else 320))
+            val origin = (frame.timeMs - 10_000L).coerceAtLeast(0)
+            it.copy(frame = frame, curve = (it.curve + frame).filter { old -> old.timeMs >= origin }.takeLast(320))
+        }
+    }
+    fun saveDetection() {
+        val snapshot = state.value
+        if (!snapshot.canSaveDetection) return
+        val take = checkNotNull(snapshot.listeningTake)
+        val id = checkNotNull(snapshot.listeningId)
+        mutable.update { it.copy(phase = Phase.SAVING, message = null) }
+        viewModelScope.launch {
+            storage(R.string.detection_storage_error) {
+                store.saveDetection(id, snapshot.listeningStartedMs, take)
+                mutable.update { it.copy(listeningSaved = true) }
+                val detections = store.detections()
+                mutable.update { it.copy(detections = detections, message = null) }
+            }
+            mutable.update { it.copy(phase = Phase.IDLE) }
+        }
+    }
+    fun historySection(section: HistorySection) {
+        if (state.value.phase != Phase.IDLE) return
+        mutable.update { it.copy(historySection = section, selectedPractice = null, practiceAttempts = emptyList(),
+            selectedDetection = null, savedDetection = null, detectionLoading = false) }
+    }
+    fun openDetection(summary: DetectionSummary) {
+        val snapshot = state.value
+        if (snapshot.screen != Screen.HISTORY || snapshot.phase != Phase.IDLE || snapshot.detectionLoading) return
+        if (summary !in snapshot.detections) {
+            Log.w("RelativeEar", "Requested detection is not in loaded history")
+            mutable.update { it.copy(message = text(R.string.detection_missing)) }
+            return
+        }
+        mutable.update { it.copy(selectedDetection = summary, savedDetection = null, detectionLoading = true,
+            replayPositionMs = 0, message = null) }
+        viewModelScope.launch {
+            storage(R.string.detection_storage_error) {
+                val saved = store.detection(summary.id)
+                mutable.update {
+                    if (it.selectedDetection?.id == summary.id) it.copy(savedDetection = saved) else it
+                }
+            }
+            mutable.update {
+                if (it.selectedDetection?.id == summary.id) it.copy(detectionLoading = false) else it
+            }
+        }
+    }
+    fun closeDetection() {
+        if (state.value.phase == Phase.SAVING) return
+        viewModelScope.launch {
+            audioJob?.cancelAndJoin()
+            audioJob = null
+            mutable.update { it.copy(selectedDetection = null, savedDetection = null, detectionLoading = false,
+                listeningExpanded = false, replayPositionMs = 0, demoNote = null, phase = Phase.IDLE, message = null) }
+        }
+    }
+    fun renameDetection(title: String) {
+        val snapshot = state.value
+        val selected = snapshot.selectedDetection ?: return
+        if (snapshot.phase != Phase.IDLE || snapshot.detectionLoading) return
+        if (title.trim().isEmpty() || title.trim().length > 80) {
+            Log.w("RelativeEar", "Invalid detection title")
+            mutable.update { it.copy(message = text(R.string.detection_name_error)) }
+            return
+        }
+        mutable.update { it.copy(phase = Phase.SAVING, message = null) }
+        viewModelScope.launch {
+            storage(R.string.detection_storage_error) {
+                store.renameDetection(selected.id, title)
+                val summary = selected.copy(title = title.trim())
+                val detections = store.detections()
+                mutable.update { it.copy(selectedDetection = summary,
+                    savedDetection = it.savedDetection?.copy(summary = summary), detections = detections) }
+            }
+            mutable.update { it.copy(phase = Phase.IDLE) }
+        }
+    }
+    fun deleteDetection() {
+        val snapshot = state.value
+        val selected = snapshot.selectedDetection ?: return
+        if (snapshot.phase != Phase.IDLE || snapshot.detectionLoading) return
+        mutable.update { it.copy(phase = Phase.SAVING, message = null) }
+        viewModelScope.launch {
+            storage(R.string.detection_storage_error) {
+                store.deleteDetection(selected.id)
+                mutable.update { it.copy(selectedDetection = null, savedDetection = null, listeningExpanded = false,
+                    listeningSaved = if (it.listeningId == selected.id) false else it.listeningSaved) }
+                val detections = store.detections()
+                mutable.update { it.copy(detections = detections) }
+            }
+            mutable.update { it.copy(phase = Phase.IDLE) }
         }
     }
     fun settings(settings: Settings) {

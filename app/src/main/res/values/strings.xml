@@ -20,7 +20,7 @@
     <string name="ear_title">Turn sounds into notes</string>
     <string name="sing_title">Bring notes to life</string>
     <string name="listen_title">Hear the melody around you</string>
-    <string name="history_title">Every practice counts</string>
+    <string name="history_title">Your music notebook</string>
     <string name="fixed_anchor">C4 = Do · Fixed solfege</string>
     <string name="rhythm_badge">Eighth note · %1$d BPM</string>
     <string name="training_hero">Listen, then name the note</string>
@@ -62,8 +62,8 @@
     <string name="voice_clarinet">Clarinet voice</string>
     <string name="voice_organ">Organ voice</string>
     <string name="melody_title">Note timeline and replay</string>
-    <string name="melody_hint">Stop listening to replay the latest 60 seconds as synthesized notes, preserving durations and pauses. The red cursor follows actual audio output. This is not an original recording or reliable complex-music transcription.</string>
-    <string name="melody_recent_window">Listening can continue indefinitely; the timeline and replay retain only the latest 60 seconds.</string>
+    <string name="melody_hint">A fixed 10-second window shows notes or a pitch curve. Stop to review, replay or manually save the full clip, up to 3 minutes. This is not reliable complex-music transcription.</string>
+    <string name="melody_recent_window">The display shows 10 seconds at a time; the complete clip is kept for up to 3 minutes.</string>
     <string name="melody_board">Note timeline; the red cursor shows actual synthesized audio progress</string>
     <string name="melody_replay">Replay detected notes</string>
     <string name="melody_stop">Stop replay</string>
@@ -72,6 +72,40 @@
     <string name="melody_progress">Replay %1$.1f / %2$.1f s</string>
     <string name="melody_seconds">%1$.1f s</string>
     <string name="melody_empty">No stable notes to replay yet. Listen to a clear single-note melody, then stop.</string>
+    <string name="detection_notes_mode">Notes</string>
+    <string name="detection_curve_mode">Curve</string>
+    <string name="detection_window_hint">Fixed 10-second window · C4 = Do · Drag or use the slider to review after stopping.</string>
+    <string name="detection_seek">Browse the full clip</string>
+    <string name="detection_canvas_description">%1$s timeline, showing %2$.1f to %3$.1f seconds; pitch references include chromatic notes</string>
+    <string name="detection_stop_elapsed">Stop · %1$.1f s</string>
+    <string name="detection_limit_hint">Up to 3 minutes per clip. The full clip is retained, not just the visible window. Backgrounding stops listening; an unsaved clip stays in memory until replaced or the app closes.</string>
+    <string name="detection_limit_reached">Reached the 3-minute limit. Listening stopped; review or save the complete clip.</string>
+    <string name="detection_synthetic_hint">Replay uses synthesized notes, not the original recording. Silence and note durations are preserved. Curves help inspect single-note melodies, not transcribe accompaniment or chords.</string>
+    <string name="detection_save">Save detection clip</string>
+    <string name="detection_saved">Clip saved</string>
+    <string name="detection_new">Start a new clip?</string>
+    <string name="detection_replace_warning">This clip has not been saved. Starting again will discard it. Cancel to review or save first.</string>
+    <string name="detection_discard_start">Discard and start</string>
+    <string name="detection_show_details">Show note details (%1$d)</string>
+    <string name="detection_hide_details">Hide note details (%1$d)</string>
+    <string name="detection_note_details">Notes · start / duration</string>
+    <string name="history_practices">Practices</string>
+    <string name="history_detections">Detection clips</string>
+    <string name="detection_history_hint">One entry per manually saved clip. No score or accuracy is assigned. Stored locally: notes, downsampled pitch curve, timestamps and tuning; no original audio.</string>
+    <string name="detection_history_empty">No saved clips yet. Stop listening and tap Save detection clip.</string>
+    <string name="detection_default_title">Detection clip</string>
+    <string name="detection_summary">%1$.1f s · %2$d notes</string>
+    <string name="detection_range">Range %1$s–%2$s · A4 = %3$.0f Hz</string>
+    <string name="detection_tuning">A4 = %1$.0f Hz · Curve-only clips may have no stable notes to replay.</string>
+    <string name="detection_open">View melody →</string>
+    <string name="detection_back">Back to detection clips</string>
+    <string name="detection_rename">Rename clip</string>
+    <string name="detection_name">Clip name</string>
+    <string name="detection_name_error">Enter 1–80 characters.</string>
+    <string name="detection_confirm_name">Save name</string>
+    <string name="detection_delete_warning">Delete this detection clip and its pitch data? This cannot be undone.</string>
+    <string name="detection_missing">Clip not found. Refresh local data and try again.</string>
+    <string name="detection_storage_error">Cannot complete the clip operation: %1$s. Please retry; existing practice scores are unchanged.</string>
     <string name="library_hint">Tap notes to match solfege, pitch names, and sounds. Do↑ is the higher Do at C5.</string>
     <string name="staff_hidden">Decorative eighth note; no answer pitch is shown before answering</string>
     <string name="staff_note">Eighth note: %1$s</string>
@@ -185,7 +219,7 @@
     <string name="tolerance_label">Pitch tolerance: ±%1$d cents</string>
     <string name="octave_label">Ignore octave when singing (allow an octave above/below)</string>
     <string name="range_hint">Training notes: C4–C5 natural notes. Detection covers about 65–1000 Hz.</string>
-    <string name="privacy">Audio is processed locally, not saved or uploaded. Only a manual update check contacts GitHub. Leaving the page or backgrounding stops listening.</string>
+    <string name="privacy">Original audio is never saved or uploaded. Detection clips save only note events and a downsampled pitch curve when you tap Save. Practice history is separate; deleting practice scores does not delete clips. Backgrounding or leaving detection stops listening. Only a manual update check contacts GitHub.</string>
     <string name="clear_data">Delete all practice history</string>
     <string name="clear_confirm">Delete all history? This cannot be undone.</string>
     <string name="delete">Delete</string>
@@ -214,5 +248,9 @@
     <string-array name="fixed_solfege_names">
         <item>Do</item><item>Re</item><item>Mi</item><item>Fa</item>
         <item>Sol</item><item>La</item><item>Si</item><item>Do↑</item>
+    </string-array>
+    <string-array name="chromatic_solfege_names">
+        <item>Do</item><item>Do♯</item><item>Re</item><item>Re♯</item><item>Mi</item><item>Fa</item>
+        <item>Fa♯</item><item>Sol</item><item>Sol♯</item><item>La</item><item>La♯</item><item>Si</item>
     </string-array>
 </resources>

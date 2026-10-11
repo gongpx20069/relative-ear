@@ -85,7 +85,7 @@ class LanguageSettingsTest {
         compose.onNodeWithTag("language-ENGLISH").performScrollTo().performClick()
         waitFor("Follow system")
         for ((tab, heading) in listOf("Train" to "Turn sounds into notes", "Sing" to "Bring notes to life",
-            "Detect" to "Hear the melody around you", "History" to "Every practice counts",
+            "Detect" to "Hear the melody around you", "History" to "Your music notebook",
             "Piano" to "Learn sounds with the keys")) {
             compose.onNodeWithText(tab).performClick()
             compose.onNodeWithText(heading).assertIsDisplayed()

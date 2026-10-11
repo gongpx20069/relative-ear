@@ -2,7 +2,7 @@ package io.github.gongpx20069.relativeear.core
 
 data class MelodyClip(val notes: List<NoteEvent>, val durationMs: Long, val a4: Double = 440.0) {
     init {
-        require(durationMs in 1..WINDOW_MS && a4 in 415.0..466.0)
+        require(durationMs in 1..MAX_DURATION_MS && a4 in 415.0..466.0)
         var end = 0L
         notes.forEach {
             require(it.midi in 0..127 && it.startMs >= end && it.durationMs > 0)
@@ -16,6 +16,7 @@ data class MelodyClip(val notes: List<NoteEvent>, val durationMs: Long, val a4: 
 
     companion object {
         const val WINDOW_MS = 60_000L
+        const val MAX_DURATION_MS = 180_000L
         fun recent(notes: List<NoteEvent>, elapsedMs: Long, a4: Double): MelodyClip {
             require(elapsedMs > 0)
             val origin = (elapsedMs - WINDOW_MS).coerceAtLeast(0)

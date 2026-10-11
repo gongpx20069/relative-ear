@@ -145,7 +145,8 @@ class PianoPlaybackTest {
         assertEquals(2, model.state.value.notes.size)
         compose.activity.runOnUiThread { model.select(Screen.EAR) }
         compose.waitUntil(10_000) { model.state.value.screen == Screen.EAR }
-        assertNull(model.state.value.listeningClip)
+        assertNotNull(model.state.value.listeningClip)
+        assertTrue(model.state.value.hasUnsavedDetection)
     }
     private fun screenshot(name: String) {
         val directory = requireNotNull(compose.activity.getExternalFilesDir("ui-snapshots"))

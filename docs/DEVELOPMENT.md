@@ -4,15 +4,15 @@
 
 ## 当前实现
 
-应用版本 `0.0.11`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用支持英文/简体中文，默认跟随系统。
+应用版本 `0.0.12`，Kotlin + Jetpack Compose，minSdk 26、compileSdk/targetSdk 35。默认用户指南为英文 [README](../README.md)，中文指南独立为 [README.zh-CN](../README.zh-CN.md)；应用支持英文/简体中文，默认跟随系统。
 
 - 练耳：默认入口，固定 C4=Do；三音、五音、八音与自选 C4–C5 自然音范围，唱名/音名选项，10 题一轮及首次回答计分。
 - 快速记忆：独立钢琴页提供横向 C4–C5 八白键（窄屏滑动，最小 48 dp 键宽）和快速切换单音试听；展开为沉浸式横屏，退出按钮/系统返回恢复原方向设置。其他页不嵌入钢琴。训练保留实时谱位示范和答后听答案；八分音符 60/80/100/120 BPM 播放，不做节奏评分。
 - 唱唱名：按指定音符回唱，先播放 C4，8 秒采集窗口，首个稳定片段评分；未保存八度设置时默认区分八度，已有手动设置保留。
 - UI：奶白/松绿主题、圆角分区、练习主卡、真实底栏图标、进度与答题网格、音准指示条、配置快照历史；两种 Compose 预览支持初始与八音答题布局。
 - 图标：耳朵、听觉波纹与三点，adaptive icon 及 Android 13+ 单色主题图标，不再使用播放器式音符图标。
-- 识音：YIN 单音检测，音名/Hz/cents、最近 60 秒白板、音符分段、最近 30 音文本列表；停止后按实际音高/时长/停顿合成回放，AudioTrack 播放头驱动红线，不再显示钢琴。
-- 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置；按整轮显示最近 100 次练习，点进详情才加载该练习的全部音符，支持部分练习、页面/系统返回与确认删除。
+- 识音：固定音准区，音符/曲线双模式、固定 10 秒匀速视窗、唱名/音名及半音参考线、停止后拖动/滑块浏览、横屏全屏；每次最多 3 分钟并保留完整片段，按实际音高/时长/停顿合成回放，AudioTrack 播放头驱动红线和视窗跟随。
+- 本地记录：SQLite 成绩及配置快照，SharedPreferences 设置；按整轮显示最近 100 次练习，支持部分练习。独立识音片段列表手动保存完整音符/降采样曲线/A4/时间，每次监听一张卡片，详情、合成回放、重命名和确认删除，不计入成绩。
 - 权限与生命周期：练耳不请求录音权限；离开页面、后台和播放焦点丢失时中断训练。
 - GitHub Actions：测试、lint、构建；完整仪器测试只运行一次，同次收集截图、JUnit XML 和日志并严格核对结果；标签触发固定签名的四种 ABI APK 与通用 APK、完整校验和 REST Release 上传。
 - 设置更新：手动查询公开 Releases（包含 prerelease），数值比较 0.0.x 版本、ABI 选包、下载提示与发布说明；不后台检查或自动安装，网络与资产异常有显式提示。
@@ -21,7 +21,7 @@
 
 ## 界面语言
 
-实时音准区始终渲染单行音名、固定两行读数与 26 dp 指示条，字体缩放改变整体所需空间，但有音/无音转换不改变布局。低置信度不保留上一次音名或指示点。ToneVoice 新增 GUITAR、CLARINET、ORGAN，保留原枚举持久化名及默认值；音色选择横向滚动，普通/全屏共用。吉他使用衰减泛音，单簧管突出奇次泛音，管风琴使用持续泛音；训练与识音回放默认纯音不变。本次不改变识音时间轴、曲线或分段算法，“线性”展示需求待讨论。
+实时音准区始终渲染单行音名、固定两行读数与 26 dp 指示条，字体缩放改变整体所需空间，但有音/无音转换不改变布局。低置信度不保留上一次音名或指示点。ToneVoice 提供六种合成音色，保留原枚举持久化名及默认值；音色选择横向滚动，普通/全屏共用。训练与识音回放默认纯音不变。识音音高轴仍为 MIDI 半音等间距，默认展示 C4–C5 附近并按完整片段中的极值扩展，不推断歌曲调性；唱名使用固定 C 对应 Do，半音显示升号及绝对音名。
 
 语言实现使用 AppCompatActivity 与 AppCompat 1.7.0 的 setApplicationLocales；空 LocaleList 表示跟随系统，手动支持 en / zh-Hans。Android 13+ 接入平台应用语言，较旧版本使用 autoStoreLocales 的本机持久化；manifest 声明 locales_config，默认 values 是完整英文，values-zh 为完整简体中文。不自行改全局 Locale 或覆盖系统资源。Compose 文案及无障碍描述从资源读取；ViewModel 的提示/更新错误保存 UiMessage 资源 ID 和参数，在 UI 按当前语言解析，嵌套音频设备错误也本地化，避免重建后残留旧语言。切换引起 Activity 配置更新，仍遵守 onStop 中断音频，不清空历史或设置。
 
@@ -61,10 +61,10 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 | `core` / PitchDetector | 可复用缓冲区的纯 Kotlin YIN，静音门限和置信过滤 |
 | `core` / SingingScorer | 时间窗口、有效覆盖、稳定性、目标偏差和首个有效答案 |
 | `core` / NoteSegmenter | 换音滞回、最短片段、静音分段及结束刷新 |
-| `core` / MelodyClip | 最近 60 秒的音符裁剪、合法时间线、停顿与当前音符定位 |
+| `core` / MelodyClip、DetectionTake、TimelineWindow | 最多 3 分钟完整时间线、降采样曲线及断点、当前音符和固定 10 秒视窗；旧 recent 裁剪 helper 保留兼容测试 |
 | `app` / AudioEngine | 16 kHz 单声道 PCM 采集/合成播放、播放焦点与资源释放 |
 | `app` / EarViewModel | 训练状态、协程任务、权限失败、持久化、UI 状态 |
-| `app` / HistoryStore | 参数化 SQLite 写入、统计和设置 |
+| `app` / HistoryStore、DetectionHistory | 参数化 SQLite 写入、成绩统计、片段独立保存/详情/重命名/删除和设置 |
 | `app` / PracticeHistory | 按练习汇总的卡片、完整逐音详情、部分练习与返回导航 |
 | `app` / PianoKeyboard、ListeningStudio | 独立/全屏横向八键试听、识音白板、红线进度和互斥回放控件 |
 | `core` / AppUpdates | 数值版本比较、已发布候选、完整资产/官方地址校验与系统 ABI 优先选包 |
@@ -84,7 +84,11 @@ Debug APK：`app\build\outputs\apk\debug\app-universal-debug.apk`，同目录包
 
 `ToneSynthesis` 在 16 kHz PCM 中为每音保留完整半拍槽，包括 85% 发声与尾部静音；播放一次连续写入并在末尾等待输出，不累积逐音协程定时误差。音频观察任务在释放 AudioTrack 前完成取消，避免访问已释放设备。
 
-音符回放以 AudioRecord 的累计样本时间为基准，裁剪到最近 60 秒；跨窗口的长音截取交集，首尾空白与音间停顿保持静音，不按题目 BPM 重新排列音符。`ToneSynthesis.render(MelodyClip)` 复用合成包络，最长分配 960,000 个 short（约 1.92 MB）；监听帧窗口最多 2,000 帧，已结束音符只保留与窗口相交的事件，文本只显示最后 30 项。持续监听不自动结束。回唱的原 10 秒曲线不变。
+音符回放以 AudioRecord 的累计样本时间为基准，保留完整最多 180,000 ms。DetectionRecorder 每帧更新稳定的当前音符和完整已结束音符，最后持续音无需等待换音才显示；不改 NoteSegmenter 的换音滞回。曲线按约 96 ms 采样，保留有音/无音切换与末帧，间隔超过 160 ms 不连线。DetectionTake 限制 6,000 点/2,000 事件，实际 32 ms 采集步长下三分钟不超过这些边界。原始 PCM 不保存，回放最长生成 2,880,000 个 short（约 5.76 MB），首尾静音与停顿不压缩；回唱原 10 秒曲线不变。
+
+TimelineWindow 始终使用 10,000 ms 的比例，不按片段总长归一化；监听时最新样本在右侧，开始的空白时间轴不画伪音。停止后支持拖动/可访问滑块，回放自动居中跟随并在首尾限制到有效范围。曲线叠加淡色音符块，静音/低置信度断开。全屏复用系统栏/方向恢复机制，识音展开/退出导致的方向重建不停止会话；普通配置/语言重建和后台仍中断音频。切页保留内存草稿，但停止采集；覆盖未保存草稿必须确认，进程死亡不恢复未保存数据。
+
+SQLite 版本 3 从 1 或 2 逐级添加表，保留原 attempts 和 preferences。detection_takes 保存唯一草稿 UUID、可选名称、时间、时长、A4、音符数/音域与数据版本；detection_notes 和 detection_points 按位置保存事件及浮点 MIDI/可信度/静音 NULL，外键级联删除。手动保存使用一个事务和唯一 ID，失败整段回滚，成功后禁用重复保存。列表只加载摘要与最多前 24 个音符预览，打开详情才加载完整数据并验证边界；重命名为 1–80 字符。训练成绩的清空不删除片段，片段操作不改成绩统计；曲线-only 片段可保存但不能回放。
 
 所有播放共用 AudioEngine 的焦点、路由、排队、实际播放头观察与取消清理。REPLAYING 与 LISTENING 互斥；播放器位置是已输出样本数，不用独立动画计时器猜进度。停止/后台/切页先 cancelAndJoin，观察器取消完成后才释放 AudioTrack。钢琴试听可替换上一枚试听，但不能中断题目、回唱或示范；不写入历史。`AudioSession` 接口允许测试注入合成 PitchFrame，生产仍使用真实 AudioRecord/AudioTrack。
 

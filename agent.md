@@ -4,7 +4,7 @@
 
 | 文档 | Scope | 交叉引用 |
 |---|---|---|
-| [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md) | 英文默认与中文用户指南：安装选包、练习、独立/全屏钢琴、识音回放、记录、更新和常见问题 | 用户数据边界见 PRIVACY；工程文档入口见本文件 |
+| [README.md](README.md) / [README.zh-CN.md](README.zh-CN.md) | 英文默认与中文用户指南：安装选包、练习、独立/全屏钢琴、识音双模式/全屏/完整片段与记录、更新和常见问题 | 用户数据边界见 PRIVACY；工程文档入口见本文件 |
 | [docs/DESIGN.md](docs/DESIGN.md) | 固定 C4 唱名、范围/时值、UI 产品目标、功能边界、评分规则与验收指标；包含未来规划，不能据此声称所有功能已实现 | 当前实现见 DEVELOPMENT；验证方法见 TESTING；发布细节见 RELEASE |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 已实现功能、实际模块、依赖环境、本地构建及当前与设计的差异 | 产品依据见 DESIGN；测试命令见 TESTING；正式签名见 RELEASE |
 | [docs/RELEASE.md](docs/RELEASE.md) | 公开仓库 REST 创建、签名 Secrets、0.0.x 版本、五种架构 APK、CI 与 Release 发布/重试 | 用户选包见 README；工程构建见 DEVELOPMENT；发布前验证见 TESTING |

@@ -8,13 +8,13 @@
 
 Android **8.0+**. The app supports **English and Simplified Chinese**, following the system by default. Chinese button names are also included below. No account is required. Practice and audio processing work offline.
 
-> **0.0.11 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
+> **0.0.12 early preview.** Real-phone microphone accuracy, latency, and manufacturer compatibility still need validation. This is not a professional musical-ability assessment or reliable song transcription tool.
 
 ## Install
 
 Download an APK from [GitHub Releases](https://github.com/gongpx20069/relative-ear/releases), not a source-code archive.
 
-**0.0.11:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.11/relative-ear-0.0.11-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.11/relative-ear-0.0.11-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.11)
+**0.0.12:** [ARM64 APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-arm64-v8a.apk) · [Universal APK](https://github.com/gongpx20069/relative-ear/releases/download/v0.0.12/relative-ear-0.0.12-universal.apk) · [All downloads and checksums](https://github.com/gongpx20069/relative-ear/releases/tag/v0.0.12)
 
 | APK suffix | Choose it for |
 |---|---|
@@ -80,16 +80,18 @@ The live pitch panel reserves the same space for its note, readout, and tuning g
 
 1. Open **识音** and tap **开始监听**.
 2. Hum, or play a single note near the microphone.
-3. Watch the detected pitch, frequency, pitch deviation, and recent **60-second note timeline**.
-4. Tap **停止**. The final sustained note is added to the recognized sequence.
+3. Switch **Notes / Curve (音符 / 曲线)**. The fixed **10-second window** scrolls at a constant speed with new sounds entering on the right. Pitch reference lines use fixed solfege or pitch names, including chromatic notes; the vertical scale expands for notes outside C4–C5. Curve mode shows pitch movement with faint note blocks, breaking at silence or low confidence.
+4. Tap **Stop (停止)**, or let capture stop automatically at **3 minutes**. The **complete clip** is retained, not just the visible window. Drag the canvas or use the review slider to inspect earlier parts. **Expand fullscreen** provides a landscape canvas; Exit fullscreen or Android Back restores navigation and orientation.
 5. Tap **回放识别音符** to replay the detected pitches as synthesized tones. A red cursor moves with actual audio output. Note lengths and pauses, including leading and trailing silence, are preserved.
 6. Tap **停止回放** to stop. Replaying again starts at the beginning of the retained clip.
 
-The text list shows the latest 30 notes; the timeline and replay retain the latest **60 seconds**. Listening itself can continue longer. Replay preserves recognized octaves and chromatic notes rather than forcing everything into C4–C5.
+**Show note details** expands the full chronological note list. Replay preserves recognized octaves, chromatic notes, durations, and pauses across the entire clip. The red cursor follows real audio output and the viewport follows playback. A curve-only clip can be saved but has no stable note sequence to replay.
+
+Tap **Save detection clip (保存识音片段)** after stopping to keep the clip on your phone. Saving is manual, one entry per listening session, without a score. The stored data contains note events, a downsampled pitch curve (about one point per 96 ms, with silence transitions retained), capture time, and the original A4 tuning. It does not contain original audio.
 
 **Replay is not an original recording and does not speak the words “Do / Re / Mi.”** It synthesizes tones from detected note events. Analysis and segmentation introduce some delay; incorrectly detected notes will also replay incorrectly.
 
-Leave short pauses between repeated notes, or they may merge into one sustained event. The temporary clip is cleared when you start a new capture, leave the detection page, or close the app. Capture and replay cannot run simultaneously. Backgrounding or losing audio focus stops playback without automatically resuming.
+Leave short pauses between repeated notes, or they may merge into one sustained event. Switching pages stops capture but keeps the current draft in memory. Starting again requires confirmation if it would replace an unsaved clip; closing the app or process termination loses unsaved drafts. Capture and replay cannot run simultaneously. Backgrounding or losing audio focus stops audio without automatically resuming. Entering or exiting detection fullscreen preserves the session; ordinary rotation or language recreation may stop audio.
 
 Detection is intended for a single voice or instrument melody. It does **not** identify songs or reliably transcribe chords, accompaniment, or full recordings.
 
@@ -98,7 +100,8 @@ Detection is intended for a single voice or instrument melody. It does **not** i
 - **记录** shows **one card per practice**, with time, answered questions, accuracy, and the configuration. Tap a card for chronological per-note answers, timeouts, response times, replays, and singing errors.
 - The list shows the latest 100 practices; overall accuracy is weighted by answered questions across all saved practices. Different ranges and legacy modes are not directly comparable difficulty levels.
 - Leaving a round early preserves its answered portion as a partial practice. Unanswered questions and piano previews do not create scores. Existing records remain available after upgrades.
-- **设置** controls A4 tuning (415–466 Hz), singing tolerance, and octave matching. **删除全部训练记录** deletes scores after confirmation but keeps settings.
+- **History → Detection clips (记录 → 识音片段)** is separate from practice scores. Each saved card shows date, duration, note count, range, and a small preview of up to 24 initial note events. Open it for the complete Notes/Curve canvas, synthesized replay, and note details. Clips can be renamed or deleted with confirmation. Changing A4 later does not retune saved clips.
+- **设置** controls A4 tuning (415–466 Hz), singing tolerance, and octave matching. **删除全部训练记录** deletes scores after confirmation but keeps settings and detection clips; delete clips individually in their details.
 
 ## App language
 
@@ -114,7 +117,7 @@ A browser or another external app handles the download. Install the APK manually
 
 ## Privacy, troubleshooting, and project checks
 
-Raw microphone audio is processed locally, not saved or uploaded. Scores and settings stay on your phone, with system cloud backup disabled. Synthesized replay is generated in memory. Only a manual update check contacts GitHub; it sends no recordings or scores. See [Privacy](docs/PRIVACY.md).
+Raw microphone audio is processed locally, not saved or uploaded. Scores, settings, and manually saved note/curve clips stay on your phone, with system cloud backup disabled. Synthesized replay is generated in memory. Only a manual update check contacts GitHub; it sends no recordings, curves, or scores. See [Privacy](docs/PRIVACY.md).
 
 If no stable pitch appears, check microphone permission, stop other recording apps, reduce background noise, and try a clear sustained note. The detector covers roughly **65–1000 Hz**. For octave errors, try changing microphone distance or reducing accompaniment. If permission was permanently denied, enable it in Android's app settings.
 

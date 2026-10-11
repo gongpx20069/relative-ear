@@ -20,7 +20,7 @@
     <string name="ear_title">把声音，变成音符</string>
     <string name="sing_title">把音符，唱进心里</string>
     <string name="listen_title">听见身边的旋律</string>
-    <string name="history_title">每一次练习，都算数</string>
+    <string name="history_title">音乐记录本</string>
     <string name="fixed_anchor">C4 = Do · 固定唱名</string>
     <string name="rhythm_badge">八分音符 · %1$d BPM</string>
     <string name="training_hero">先听一声，再认一个音</string>
@@ -62,8 +62,8 @@
     <string name="voice_clarinet">单簧管音色</string>
     <string name="voice_organ">管风琴音色</string>
     <string name="melody_title">音符白板与回放</string>
-    <string name="melody_hint">停止监听后，用合成音重放最近 60 秒内的识别结果，保留各音时长和停顿。红线随实际播放从左向右移动；不是原声录音，不保证复杂音乐识别准确。</string>
-    <string name="melody_recent_window">持续监听不受限制；白板与回放仅保留最近 60 秒。</string>
+    <string name="melody_hint">固定 10 秒窗口，可切换音符或音高曲线。停止后可查看、合成回放或手动保存完整片段，单次最多 3 分钟。不保证复杂音乐识别准确。</string>
+    <string name="melody_recent_window">画布每次显示 10 秒，完整片段最多保留 3 分钟。</string>
     <string name="melody_board">音符时间白板，红线表示合成音实际播放进度</string>
     <string name="melody_replay">回放识别音符</string>
     <string name="melody_stop">停止回放</string>
@@ -185,7 +185,7 @@
     <string name="tolerance_label">音准容差：±%1$d 音分</string>
     <string name="octave_label">回唱忽略八度（允许高/低八度回答）</string>
     <string name="range_hint">练习音库：C4–C5 自然音。实时检测范围约 65–1000 Hz。</string>
-    <string name="privacy">声音只在本机处理，不录音保存、不上传。仅手动检查更新会联网查询 GitHub。离开页面或切到后台会停止监听。</string>
+    <string name="privacy">原始声音不保存、不上传。点击保存才会在本机保存识音音符与降采样曲线，识音片段与练习成绩分开，删除练习记录不会删除片段。离开识音页或切后台会停止监听。仅手动检查更新会联网查询 GitHub。</string>
     <string name="clear_data">删除全部训练记录</string>
     <string name="clear_confirm">删除全部记录？此操作不可撤销。</string>
     <string name="delete">删除</string>
@@ -215,4 +215,42 @@
         <item>Do</item><item>Re</item><item>Mi</item><item>Fa</item>
         <item>Sol</item><item>La</item><item>Si</item><item>Do↑</item>
     </string-array>
+    <string-array name="chromatic_solfege_names">
+        <item>Do</item><item>Do♯</item><item>Re</item><item>Re♯</item><item>Mi</item><item>Fa</item>
+        <item>Fa♯</item><item>Sol</item><item>Sol♯</item><item>La</item><item>La♯</item><item>Si</item>
+    </string-array>
+    <string name="detection_notes_mode">音符</string>
+    <string name="detection_curve_mode">曲线</string>
+    <string name="detection_window_hint">固定 10 秒窗口 · C4 = Do · 停止后可拖动画布或滑动进度条查看。</string>
+    <string name="detection_seek">浏览完整片段</string>
+    <string name="detection_canvas_description">%1$s时间轴，显示 %2$.1f 到 %3$.1f 秒；音高参考包含半音</string>
+    <string name="detection_stop_elapsed">停止 · %1$.1f 秒</string>
+    <string name="detection_limit_hint">单次最多 3 分钟，保留完整片段而非仅可见窗口。切后台会停止监听；未保存片段暂留内存，重新监听或关闭应用后丢弃。</string>
+    <string name="detection_limit_reached">已到 3 分钟上限，监听已停止。可查看或保存完整片段。</string>
+    <string name="detection_synthetic_hint">回放是合成音，不是原声录音；保留音符时长与静音。曲线辅助观察单音旋律，不可靠识别伴奏或和弦。</string>
+    <string name="detection_save">保存识音片段</string>
+    <string name="detection_saved">片段已保存</string>
+    <string name="detection_new">开始新片段？</string>
+    <string name="detection_replace_warning">当前片段尚未保存。重新监听将丢弃它；可先取消，查看或保存。</string>
+    <string name="detection_discard_start">丢弃并开始</string>
+    <string name="detection_show_details">展开音符详情（%1$d）</string>
+    <string name="detection_hide_details">收起音符详情（%1$d）</string>
+    <string name="detection_note_details">音符 · 开始时间 / 时长</string>
+    <string name="history_practices">练习记录</string>
+    <string name="history_detections">识音片段</string>
+    <string name="detection_history_hint">手动保存的一次监听对应一条记录，不计正确率或练习成绩。本机仅保存音符、降采样曲线、时间与调音基准，不保存原声。</string>
+    <string name="detection_history_empty">还没有保存片段。停止监听后点击“保存识音片段”。</string>
+    <string name="detection_default_title">识音片段</string>
+    <string name="detection_summary">%1$.1f 秒 · %2$d 个音符</string>
+    <string name="detection_range">音域 %1$s–%2$s · A4 = %3$.0f Hz</string>
+    <string name="detection_tuning">A4 = %1$.0f Hz · 仅有曲线的片段可能没有可回放的稳定音符。</string>
+    <string name="detection_open">查看旋律 →</string>
+    <string name="detection_back">返回识音片段</string>
+    <string name="detection_rename">重命名片段</string>
+    <string name="detection_name">片段名称</string>
+    <string name="detection_name_error">请输入 1–80 个字符。</string>
+    <string name="detection_confirm_name">保存名称</string>
+    <string name="detection_delete_warning">删除此识音片段及其音高数据？此操作无法撤销。</string>
+    <string name="detection_missing">片段不存在，请重新加载本地数据后重试。</string>
+    <string name="detection_storage_error">无法完成片段操作：%1$s。请重试，既有练习成绩不变。</string>
 </resources>
